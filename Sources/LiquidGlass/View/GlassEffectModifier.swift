@@ -71,7 +71,7 @@ public struct GlassEffectModifier: ViewModifier {
     
     public func body(content: Content) -> some View {
         Group {
-            if #available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *) {
+            if #available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *), false {
                 #if !os(visionOS)
                 Group {
                     switch self.shape {
@@ -113,6 +113,7 @@ public struct GlassEffectModifier: ViewModifier {
                             }
                         }
                     }
+                    
             }
         }
 #if os(macOS)
@@ -125,6 +126,7 @@ public struct GlassEffectModifier: ViewModifier {
             }
         }
 #endif
+        .compositingGroup()
     }
     
     private var hoverBackground: some ShapeStyle {

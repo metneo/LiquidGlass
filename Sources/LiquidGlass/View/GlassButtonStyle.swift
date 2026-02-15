@@ -253,7 +253,7 @@ fileprivate struct GlassButtonMidifier: ViewModifier {
 }
 
 public extension Button {
-    func glassStyleButton(shape: BackgroundShape = .roundedRect(cornerRadius: 12), prominent: Bool = false, tint: Color? = nil, opacity: CGFloat = 0.8) -> some View {
+    @MainActor func glassStyleButton(shape: BackgroundShape = .roundedRect(cornerRadius: 12), prominent: Bool = false, tint: Color? = nil, opacity: CGFloat = 0.8) -> some View {
         self.modifier(GlassButtonMidifier(shape: shape, prominent: prominent, tint: tint, opacity: opacity))
     }
 }
