@@ -18,7 +18,17 @@ import SwiftUI
 /// // Capsule (pill shape)
 /// let capsuleShape = BackgroundShape.capsule
 /// ```
-public enum BackgroundShape: Sendable {
+public enum BackgroundShape: Sendable, Shape {
+    
+    public func path(in rect: CGRect) -> Path {
+        switch self {
+        case .roundedRect(let cornerRadius):
+            CustomShape(shape: self, animatableCornerRadius: cornerRadius).path(in: rect)
+        default:
+            CustomShape(shape: self).path(in: rect)
+        }
+        
+    }
 
     /// A rounded rectangle with customizable corner radius.
     /// - Parameter cornerRadius: The radius of the rounded corners in points.

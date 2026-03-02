@@ -9,7 +9,7 @@ import SwiftUI
 
 extension View {
     // Convenience overload: pass common knobs directly without constructing Configuration.
-    public func liquidGlassRefraction(
+    public func liquidGlassWithRefraction(
         shape: BackgroundShape = .capsule,
         opacity: CGFloat = 0.65,
         tint: Color? = nil,

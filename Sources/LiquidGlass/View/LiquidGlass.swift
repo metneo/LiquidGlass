@@ -23,6 +23,15 @@ public enum LightAngle {
 /// - `tint(_:)` to customize the accent/tint color used by subtle gradients.
 /// - `opacity(_:)` to customize the highlight color opacity.
 public struct LiquidGlass: View {
+    // MARK: - Constants
+    private static let defaultOpacity: CGFloat = 0.6
+    private static let defaultLightAngle: LightAngle = .topLeading
+    private static let strokeLineWidth: CGFloat = 1.2
+    private static let strokeBlurRadius: CGFloat = 1.2
+    private static let shadowRadius: CGFloat = 10
+    private static let highlightOpacityMultiplier: CGFloat = 0.75
+    private static let overlayBlendBlurRadius: CGFloat = 0.6
+    
     // MARK: - Stored properties
 
     /// Optional tint color. If not provided, `.accentColor` is used.
@@ -36,11 +45,11 @@ public struct LiquidGlass: View {
     
     /// The opacity level for the glass effect (default: 0.6).
     /// Higher values make the glass more opaque, lower values more transparent.
-    private var opacity: CGFloat = 0.6
+    private var opacity: CGFloat = Self.defaultOpacity
     
     private let hovering: Bool
     
-    private var lightAngle: LightAngle = .topLeading
+    private var lightAngle: LightAngle = Self.defaultLightAngle
 
     // MARK: - Initializer
 
@@ -51,13 +60,20 @@ public struct LiquidGlass: View {
         self.shape = shape
         self.hovering = hovering
     }
+            
+    internal init(shape: BackgroundShape, hovering: Bool = false, tintColor: Color? = nil, opacity: CGFloat = Self.defaultOpacity, lightAngle: LightAngle = Self.defaultLightAngle) {
+        self.shape = shape
+        self.hovering = hovering
+        self.tintColor = tintColor
+        self.opacity = opacity
+        self.lightAngle = lightAngle
+    }
     
     public func lightAngle(_ angle: LightAngle) -> Self {
         var copy = self
         copy.lightAngle = angle
         return copy
     }
-    
 
     // MARK: - Fluent API
     
@@ -65,7 +81,7 @@ public struct LiquidGlass: View {
     /// - Parameter opacity: The opacity level for the glass effect (default: 0.6).
     ///   Higher values make the glass more opaque, lower values more transparent.
     /// - Returns: A new `LiquidGlass` with the specified opacity.
-    public func opacity(_ opacity: CGFloat = 0.6) -> LiquidGlass {
+    public func opacity(_ opacity: CGFloat) -> LiquidGlass {
         var copy = self
         copy.opacity = opacity
         return copy
@@ -88,33 +104,52 @@ public struct LiquidGlass: View {
     
     @ViewBuilder
     private func applyEffect(baseShape: some InsettableShape) -> some View {
-        let highlightOpacity = opacity * 0.75
-        // Base fill with system material for frosted effect
         baseShape
-            .fill(.ultraThinMaterial)
+            .foregroundStyle(.ultraThinMaterial)
             .overlay {
-                if let tint = tintColor {
-                    baseShape.fill(tint)
-                } else {
-                    baseShape.fill(Color.highlight.opacity(highlightOpacity))
-                }
+                highlightOverlay(baseShape: baseShape)
             }
             .overlay {
-                switch lightAngle {
-                case .topLeading, .bottomTrailing, .all:
-                    GeometryReader { proxy in
-                        baseShape
-                            .stroke(shape.gradient(proxy: proxy, highlighting: Color.stroke, tint: tintColor, angle: lightAngle))
-                            .blendMode(.plusLighter)
-                    }
-                case .none:
-                    EmptyView()
-                }
+                strokeOverlay(baseShape: baseShape)
             }
-            .shadow(color: Color.shadow, radius: 10, x: 0, y: 0)
+            .shadow(color: Color.shadow.opacity(opacity), radius: Self.shadowRadius, x: 0, y: 0)
+            .compositingGroup()
+    }
+    
+    @ViewBuilder
+    private func highlightOverlay(baseShape: some InsettableShape) -> some View {
+        let highlight = tintColor ?? Color.highlight
+        baseShape.fill(highlight.opacity(opacity * Self.highlightOpacityMultiplier))
+    }
+    
+    @ViewBuilder
+    private func strokeOverlay(baseShape: some InsettableShape) -> some View {
+        switch lightAngle {
+        case .topLeading, .bottomTrailing, .all:
+            GeometryReader { proxy in
+                baseShape
+                    .stroke(
+                        shape.gradient(
+                            proxy: proxy,
+                            highlighting: Color.stroke.opacity(opacity),
+                            tint: tintColor,
+                            angle: lightAngle
+                        ),
+                        lineWidth: Self.strokeLineWidth
+                    )
+                    .blendMode(.plusLighter)
+            }
+        case .none:
+            EmptyView()
+        }
     }
 
     public var body: some View {
+        buildShapeView()
+    }
+    
+    @ViewBuilder
+    private func buildShapeView() -> some View {
         switch shape {
         case .roundedRect(let cornerRadius):
             applyEffect(baseShape: RoundedRectangle(cornerRadius: cornerRadius))

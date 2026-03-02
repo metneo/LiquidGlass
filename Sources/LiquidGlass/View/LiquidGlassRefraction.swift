@@ -117,9 +117,7 @@ struct LiquidGlassRefraction: View {
             }
         } else {
             // Fallback to v2 custom composer on earlier OS versions
-            LiquidGlassV2(shape: shape.asBackgroundShape, config: .init())
-                .opacity(config.opacity)
-                .tintColor(config.tint)
+            LiquidGlassV2(shape: shape.asBackgroundShape, config: .init(opacity: config.opacity, tint: config.tint))
         }
     }
 }
@@ -187,7 +185,7 @@ private struct CheckerboardOverlay: View {
     VStack(spacing: 24) {
         Text("Liquid Glass")
             .padding()
-            .liquidGlassRefraction(shape: .capsule, opacity: 0.7)
+            .liquidGlassWithRefraction(shape: .capsule, opacity: 0.7)
         
         Text("Liquid Glass")
             .padding()

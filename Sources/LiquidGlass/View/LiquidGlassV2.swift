@@ -18,43 +18,41 @@ import SwiftUI
 public struct LiquidGlassV2: View {
     // MARK: - Configuration
     public struct Configuration {
-        public var opacity: CGFloat = 0.65           // Base glass presence
-        public var tint: Color? = nil                // Optional color wash
-        public var lightAngle: LightAngle = .topLeading
-        public var edgeGlow: CGFloat = 0.8           // 0…1, strength of edge lighting
-        public var innerGlow: CGFloat = 0.6          // 0…1, strength of inner glow
-        public var sparkle: CGFloat = 0.35           // 0…1, highlight streak strength
-        public var shadowRadius: CGFloat = 10
-        public init() {}
+        public let opacity: CGFloat
+        public let tint: Color?
+        public let lightAngle: LightAngle
+        public let edgeGlow: CGFloat
+        public let innerGlow: CGFloat
+        public let sparkle: CGFloat
+        public let shadowRadius: CGFloat
+
+        public init(
+            opacity: CGFloat = 0.6,
+            tint: Color? = nil,
+            lightAngle: LightAngle = .topLeading,
+            edgeGlow: CGFloat = 0.8,
+            innerGlow: CGFloat = 0.6,
+            sparkle: CGFloat = 0.35,
+            shadowRadius: CGFloat = 10
+        ) {
+            self.opacity = opacity
+            self.tint = tint
+            self.lightAngle = lightAngle
+            self.edgeGlow = edgeGlow
+            self.innerGlow = innerGlow
+            self.sparkle = sparkle
+            self.shadowRadius = shadowRadius
+        }
     }
 
     // MARK: - Stored
     private let shape: BackgroundShape
-    private var config: Configuration
+    private let config: Configuration
 
     // MARK: - Init
     public init(shape: BackgroundShape, config: Configuration = .init()) {
         self.shape = shape
         self.config = config
-    }
-
-    // MARK: - Fluent
-    public func opacity(_ value: CGFloat) -> Self {
-        var copy = self
-        copy.config.opacity = value
-        return copy
-    }
-
-    public func tintColor(_ tint: Color?) -> Self {
-        var copy = self
-        copy.config.tint = tint
-        return copy
-    }
-
-    public func lightAngle(_ angle: LightAngle) -> Self {
-        var copy = self
-        copy.config.lightAngle = angle
-        return copy
     }
 
     // MARK: - Body
@@ -168,6 +166,7 @@ public struct LiquidGlassV2: View {
             }
             // 5) Soft drop shadow for lift
             .shadow(color: Color.shadow.opacity(opacity), radius: config.shadowRadius, x: 0, y: 0)
+            .compositingGroup()
     }
 }
 

@@ -59,25 +59,24 @@ public struct GlassEffectModifierV2: ViewModifier {
         LiquidGlassV2(shape: shape, config: config)
             .background { maskHover }
     }
-
+    
+    @ViewBuilder
     private var maskHover: some View {
-        Group {
-            switch shape {
-            case .roundedRect(let r):
-                RoundedRectangle(cornerRadius: r)
-                    .fill(hoverEffect && onHover ? AnyShapeStyle(hoverBackground) : AnyShapeStyle(.clear))
-            case .circle:
-                Circle()
-                    .fill(hoverEffect && onHover ? AnyShapeStyle(hoverBackground) : AnyShapeStyle(.clear))
-            case .capsule:
-                Capsule()
-                    .fill(hoverEffect && onHover ? AnyShapeStyle(hoverBackground) : AnyShapeStyle(.clear))
-            }
+        switch shape {
+        case .roundedRect(let r):
+            RoundedRectangle(cornerRadius: r)
+                .fill(hoverEffect && onHover ? AnyShapeStyle(hoverBackground) : AnyShapeStyle(.clear))
+        case .circle:
+            Circle()
+                .fill(hoverEffect && onHover ? AnyShapeStyle(hoverBackground) : AnyShapeStyle(.clear))
+        case .capsule:
+            Capsule()
+                .fill(hoverEffect && onHover ? AnyShapeStyle(hoverBackground) : AnyShapeStyle(.clear))
         }
     }
-
-    private var hoverBackground: some ShapeStyle {
-        colorScheme == .dark ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.white)
+    
+    private var hoverBackground: AnyShapeStyle {
+        colorScheme == .dark ? AnyShapeStyle(.quinary) : AnyShapeStyle(.white)
     }
 }
 

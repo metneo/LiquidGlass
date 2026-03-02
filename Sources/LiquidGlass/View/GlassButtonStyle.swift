@@ -146,13 +146,14 @@ fileprivate struct GlassButtonStyle: ButtonStyle {
     /// - Parameter configuration: The button configuration containing label and interaction state.
     /// - Returns: A view representing the styled button with glass effects applied.
     public func makeBody(configuration: Configuration) -> some View {
-        let tintColor: Color? = configuration.isPressed ? Color.secondary.opacity(0.2) : (prominent ? prominentColor : nil)
+        let tintColor: Color? = configuration.isPressed ? nil : (prominent ? prominentColor : nil)
         // Use custom glass background for earlier platforms
         configuration.label
             .padding(5)
             .buttonStyle(.plain)
+//            .liquidGlassWithRefraction(shape: .circle)
+//            .liquidGlassV2(shape: .circle, hoverEffect: !configuration.isPressed)
             .liquidGlass(shape: shape, opacity: opacity, tint: tintColor, hoverEffect: !configuration.isPressed)
-            .animation(.default, value: configuration.isPressed)
     }
 }
 

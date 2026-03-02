@@ -16,7 +16,11 @@ import SwiftUI
 ///
 /// Optional features:
 /// - **Hover effect**: When enabled, shows a subtle quaternary fill on pointer hover.
-public struct GlassEffectModifier: ViewModifier {
+struct GlassEffectModifier: ViewModifier {
+    // MARK: - Constants
+    private static let defaultOpacity: CGFloat = 0.6
+    private static let defaultAngle: LightAngle = .topLeading
+    
     // MARK: - Properties
     
     /// The underlying background shape (roundedRect, circle, capsule)
@@ -38,6 +42,12 @@ public struct GlassEffectModifier: ViewModifier {
     
     /// Respect system color scheme for subtle color adjustments.
     @Environment(\.colorScheme) private var colorScheme
+    
+    /// Computed property for current hover fill style
+    private var hoverFillStyle: AnyShapeStyle {
+        let hoverBackground = colorScheme == .dark ? AnyShapeStyle(.quinary) : AnyShapeStyle(.white)
+        return hoverEffect && onHover ? AnyShapeStyle(hoverBackground) : AnyShapeStyle(.clear)
+    }
 
     // MARK: - Initializer
     
@@ -48,12 +58,12 @@ public struct GlassEffectModifier: ViewModifier {
     ///     Higher values make the glass more opaque, lower values more transparent.
     ///   - hoverEffect: If `true`, displays a subtle fill on pointer hover. Default is `false`.
     ///   - angle: Glass effect light angle
-    public init(
+    init(
         shape: BackgroundShape,
-        opacity: CGFloat = 0.6,
+        opacity: CGFloat = Self.defaultOpacity,
         tint: Color? = nil,
         hoverEffect: Bool = false,
-        angle: LightAngle = .topLeading
+        angle: LightAngle = Self.defaultAngle
     ) {
         self.shape = shape
         self.hoverEffect = hoverEffect
@@ -61,63 +71,10 @@ public struct GlassEffectModifier: ViewModifier {
         self.tint = tint
         self.lightAngle = angle
     }
-    
-//    /// Convenience computed property to convert `BackgroundShape` to `Shape`
-//    private var containerShape: some Shape {
-//        shape.shape
-//    }
-    
-    // MARK: - Body
-    
-    public func body(content: Content) -> some View {
-        Group {
-            if #available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *), false {
-                #if !os(visionOS)
-                Group {
-                    switch self.shape {
-                    case .roundedRect(let cornerRadius):
-                        content
-                            .glassEffect(in: RoundedRectangle(cornerRadius: cornerRadius))
-                    case .circle:
-                        content
-                            .glassEffect(in: .circle)
-                    case .capsule:
-                        content
-                            .glassEffect(in: .capsule)
-                    }
-                }
-                    .tint(tint)
-                    .backgroundStyle(hoverEffect && onHover ? AnyShapeStyle(hoverBackground) : AnyShapeStyle(.clear))
-                #endif
-            } else {
-                // Fallback to custom glass style for earlier OS versions
-                content
-                    .background {
-                        LiquidGlass(shape: shape, hovering: hoverEffect && onHover)
-                            .opacity(opacity)
-                            .tintColor(tint)
-                            .lightAngle(lightAngle)
-                    }
-                    .background {
-                        Group {
-                            switch shape {
-                            case .roundedRect(let cornerRadius):
-                                RoundedRectangle(cornerRadius: cornerRadius)
-                                    .fill(hoverEffect && onHover ? AnyShapeStyle(hoverBackground) : AnyShapeStyle(.clear))
-                            case .circle:
-                                Circle()
-                                    .fill(hoverEffect && onHover ? AnyShapeStyle(hoverBackground) : AnyShapeStyle(.clear))
-                            case .capsule:
-                                Capsule()
-                                    .fill(hoverEffect && onHover ? AnyShapeStyle(hoverBackground) : AnyShapeStyle(.clear))
-                            }
-                        }
-                    }
-                    
-            }
-        }
-#if os(macOS)
-        // Track hover state if hover effect is enabled
+
+    func body(content: Content) -> some View {
+        renderGlassEffect(content: content)
+        #if os(macOS)
         .onHover { hovering in
             if hoverEffect {
                 withAnimation {
@@ -125,11 +82,40 @@ public struct GlassEffectModifier: ViewModifier {
                 }
             }
         }
-#endif
+        #endif
         .compositingGroup()
     }
     
-    private var hoverBackground: some ShapeStyle {
-        colorScheme == .dark ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.white)
+    // MARK: - Private Helpers
+    
+    @ViewBuilder
+    private func renderGlassEffect(content: Content) -> some View {
+        content
+            .background {
+                renderHoverBackground()
+            }
+            .background {
+                LiquidGlass(
+                    shape: shape,
+                    hovering: hoverEffect && onHover,
+                    tintColor: tint,
+                    lightAngle: lightAngle
+                )
+            }
+    }
+    
+    @ViewBuilder
+    private func renderHoverBackground() -> some View {
+        switch shape {
+        case .roundedRect(let cornerRadius):
+            RoundedRectangle(cornerRadius: cornerRadius)
+                .fill(hoverFillStyle)
+        case .circle:
+            Circle()
+                .fill(hoverFillStyle)
+        case .capsule:
+            Capsule()
+                .fill(hoverFillStyle)
+        }
     }
 }
