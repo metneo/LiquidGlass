@@ -70,7 +70,7 @@ struct GlassEffectModifier: ViewModifier {
 
     @ViewBuilder
     private func renderGlassEffect(content: Content) -> some View {
-        if #available(anyAppleOS 26.0, *) {
+        if #available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *) {
             nativeGlass(content)
         } else {
             fallbackGlass(content)
@@ -78,7 +78,7 @@ struct GlassEffectModifier: ViewModifier {
     }
 
     @ViewBuilder
-    @available(anyAppleOS 26.0, *)
+    @available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *)
     private func nativeGlass(_ content: Content) -> some View {
         content
             .glassEffect(in: shape)

@@ -2,7 +2,7 @@
 
 Fallback support for the Liquid Glass effect on older Apple platforms.
 
-Apple introduced the native `glassEffect(in:)` API on **Platform 26+** (iOS 26 / macOS 26). LiquidGlass gives your SwiftUI views the same frosted-glass look on **older platforms** — before Platform 26 — via a pure-SwiftUI implementation. On Platform 26+ it automatically switches to the system's native effect, so the same API works everywhere.
+Apple introduced the native `glassEffect(in:)` API on **Platform 26+** (iOS 26 / macOS 26). This project gives your SwiftUI views the similar frosted-glass look on **older platforms** (before Platform 26) via a pure-SwiftUI implementation. On Platform 26+ it automatically switches to the system's native effect, so the same API works everywhere.
 
 ![Liquid Glass Preview](Sources/LiquidGlass/Documentation.docc/Resources/LiquidGlass.png)
 

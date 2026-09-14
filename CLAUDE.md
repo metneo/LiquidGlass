@@ -70,7 +70,7 @@ These adapt automatically to light/dark appearance via asset catalog configurati
 ```swift
 @ViewBuilder
 private func renderGlassEffect(content: Content) -> some View {
-    if #available(anyAppleOS 26.0, *) {          // the single modifier
+    if #available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *) {          // the single modifier
         content.glassEffect(in: shape).tint(tint)  // native glassEffect(in:) API
     } else {
         content.background { LiquidGlass(shape: shape, tintColor: tint, lightAngle: lightAngle) }
@@ -78,5 +78,5 @@ private func renderGlassEffect(content: Content) -> some View {
 }
 ```
 
-- Platform 26 = iOS 26 / macOS 26. `GlassEffectModifier` gates on `anyAppleOS 26.0` and always prefers the native API on 26+; below that it falls back to the `LiquidGlass` router (which picks V26/V27 from the `\.liquidGlassVersion` environment).
+- Platform 26 = iOS 26 / macOS 26. `GlassEffectModifier` gates on `macOS 26.0 / iOS 26.0` and always prefers the native API on 26+; below that it falls back to the `LiquidGlass` router (which picks V26/V27 from the `\.liquidGlassVersion` environment).
 - Keep the native-`glassEffect`/custom-fallback pattern when adding new modifiers.
