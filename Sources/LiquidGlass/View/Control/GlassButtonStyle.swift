@@ -112,18 +112,6 @@ fileprivate struct GlassButtonStyle: ButtonStyle {
     /// // Brand color for prominent button
     /// GlassButtonStyle(prominent: true).tint(.orange)
     /// ```
-//    public func tint(_ tint: Color?) -> Self {
-//        var copy = self
-//        copy.tint = tint
-//        return copy
-//    }
-//    
-//    public func glassOpacity(_ opacity: CGFloat) -> Self {
-//        var copy = self
-//        copy.opacity = opacity
-//        return copy
-//    }
-    
     /// The effective color used for prominent button styling.
     /// Returns the custom tint if provided, otherwise falls back to the system accent color.
     private var prominentColor: Color {
@@ -151,8 +139,6 @@ fileprivate struct GlassButtonStyle: ButtonStyle {
         configuration.label
             .padding(5)
             .buttonStyle(.plain)
-//            .liquidGlassWithRefraction(shape: .circle)
-//            .liquidGlassV2(shape: .circle, hoverEffect: !configuration.isPressed)
             .liquidGlass(shape: shape, opacity: opacity, tint: tintColor, hoverEffect: !configuration.isPressed)
     }
 }
@@ -210,13 +196,11 @@ fileprivate struct GlassButtonMidifier: ViewModifier {
         }
 #else
         if prominent {
-            if prominent {
-                content
-                    .buttonStyle(.borderedProminent)
-                    .tint(prominentColor)
-            } else {
-                content
-            }
+            content
+                .buttonStyle(.borderedProminent)
+                .tint(prominentColor)
+        } else {
+            content
         }
 #endif
     }

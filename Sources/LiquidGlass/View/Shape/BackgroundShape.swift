@@ -19,7 +19,7 @@ import SwiftUI
 /// let capsuleShape = BackgroundShape.capsule
 /// ```
 public enum BackgroundShape: Sendable, Shape {
-    
+
     public func path(in rect: CGRect) -> Path {
         switch self {
         case .roundedRect(let cornerRadius):
@@ -27,7 +27,24 @@ public enum BackgroundShape: Sendable, Shape {
         default:
             CustomShape(shape: self).path(in: rect)
         }
-        
+    }
+
+    /// Returns a `Shape` instance for use in SwiftUI view builders.
+    ///
+    /// This is the single place that maps `BackgroundShape` cases to their
+    /// concrete shapes, so callers can build the glass effect directly without
+    /// re-implementing the `roundedRect`/`circle`/`capsule` switch:
+    ///
+    /// ```swift
+    /// shape.shape.fill(.ultraThinMaterial)
+    /// ```
+    public var shape: CustomShape {
+        switch self {
+        case .roundedRect(let cornerRadius):
+            return CustomShape(shape: self, animatableCornerRadius: cornerRadius)
+        default:
+            return CustomShape(shape: self)
+        }
     }
 
     /// A rounded rectangle with customizable corner radius.
@@ -39,21 +56,8 @@ public enum BackgroundShape: Sendable, Shape {
 
     /// A capsule (pill-shaped) that adapts to the container's aspect ratio.
     case capsule
-
-//    /// Returns a `CustomShape` instance for use in SwiftUI view builders.
-//    /// 
-//    /// The returned shape supports animation and can be used with SwiftUI modifiers
-//    /// like `.fill()`, `.stroke()`, and `.clipShape()`.
-//    public var shape: CustomShape {
-//        switch self {
-//        case .roundedRect(let cornerRadius):
-//            return CustomShape(shape: self, animatableCornerRadius: cornerRadius)
-//        case .circle, .capsule:
-//            return CustomShape(shape: self)
-//        }
-//    }
     
-    public func gradient(proxy: GeometryProxy, highlighting: Color, tint: Color? = nil, angle: LightAngle) -> some ShapeStyle {
+    public func gradient(proxy: GeometryProxy, highlighting: Color, tint: Color? = nil, angle: LightAngle) -> AngularGradient {
         switch self {
         case .roundedRect(let radius):
             Self.calculatedGradient(
@@ -83,116 +87,65 @@ public enum BackgroundShape: Sendable, Shape {
         }
     }
 
-//    /// Creates a highlighted stroke view with gradient effects.
-//    /// 
-//    /// This method generates shape-specific gradient strokes that enhance the visual
-//    /// depth and glass-like appearance of the shape.
-//    /// 
-//    /// - Parameters:
-//    ///   - highlighting: The primary color used for the highlight effect.
-//    ///   - tint: Optional tint color that modifies the highlight appearance.
-//    ///           When provided, creates a more subtle, colored highlight.
-//    /// 
-//    /// - Returns: A view with the highlighted stroke applied to the shape.
-//    /// 
-//    /// ```swift
-//    /// BackgroundShape.roundedRect(cornerRadius: 16)
-//    ///     .highlight(highlighting: .white, tint: .blue)
-//    /// ```
-//    public func highlight(highlighting: Color, tint: Color? = nil) -> some View {
-//        Group {
-//            switch self {
-//            case .roundedRect(let radius):
-//                GeometryReader { proxy in
-//                    shape.stroke(
-//                        Self.calculatedGradient(
-//                            highlightColor: highlighting,
-//                            tint: tint,
-//                            proxy: proxy,
-//                            radius: radius
-//                        )
-//                    )
-//                }
-//            case .circle:
-//                shape.stroke(
-//                    Self.gradient(
-//                        highlightColor: highlighting,
-//                        tint: tint,
-//                        startAngle: .pi + .pi / 4,
-//                        mid1: 0.25,
-//                        mid2: 0.75
-//                    )
-//                )
-//            case .capsule:
-//                GeometryReader { proxy in
-//                    shape.stroke(
-//                        Self.calculatedGradient(
-//                            highlightColor: highlighting,
-//                            tint: tint,
-//                            proxy: proxy,
-//                            radius: proxy.size.height / 2
-//                        )
-//                    )
-//                }
-//            }
-//        }
-//    }
-
     // MARK: - Private Gradient Helpers
-    
+
+    // MARK: - Gradient Constants
+    /// Opacity applied to top gradient stop when using tint (default: 0.15).
+    private static let tintTopOpacityMultiplier: CGFloat = 0.15
+    /// Opacity applied to bottom gradient stop when using tint (default: 0.3).
+    private static let tintBottomOpacityMultiplier: CGFloat = 0.3
+    /// Opacity for bottom gradient stop when not using tint (default: 0.7).
+    private static let highlightBottomOpacityMultiplier: CGFloat = 0.7
+
     /// Creates an angular gradient for shape highlighting.
-    /// 
+    ///
     /// - Parameters:
     ///   - highlightColor: Base color for the gradient.
     ///   - tint: Optional tint that modifies the gradient colors.
-    ///   - highOpacity: Opacity level for prominent gradient stops (default: 0.7).
-    ///   - lowOpacity: Opacity level for subtle gradient stops (default: 0.1).
     ///   - startAngle: Starting angle for the gradient in radians.
     ///   - mid1: First midpoint location (0.0 to 1.0).
     ///   - mid2: Second midpoint location (0.0 to 1.0).
-    /// 
+    ///   - angle: LightAngle determining gradient direction and behavior.
+    ///
     /// - Returns: An `AngularGradient` configured for the specified parameters.
     private static func gradient(
         highlightColor: Color,
         tint: Color? = nil,
-        highOpacity: CGFloat = 1,
-        lowOpacity: CGFloat = 0.3,
         startAngle: CGFloat,
         mid1: CGFloat,
         mid2: CGFloat,
         angle: LightAngle
     ) -> AngularGradient {
-        
+
         if angle == .none {
-            return AngularGradient.init(colors: [.clear], center: .center)
+            return AngularGradient(colors: [.clear], center: .center)
         }
-        
+
         let topColor: Color
         let midColor: Color
         let bottomColor: Color
-        
+
+        // Consistent opacity multipliers for both tint and highlight paths
         if let tint = tint {
-            topColor = tint.opacity(highOpacity * 0.15)
-            midColor = tint.opacity(lowOpacity)
-            bottomColor = tint.opacity(highOpacity * 0.3)
+            topColor = tint.opacity(tintTopOpacityMultiplier)
+            midColor = tint.opacity(0.3)
+            bottomColor = tint.opacity(tintBottomOpacityMultiplier)
         } else {
-            let high = highlightColor.opacity(highOpacity)
-            let low = highlightColor.opacity(lowOpacity)
-            topColor = high
-            midColor = low
-            bottomColor = high.opacity(0.7)
+            topColor = highlightColor
+            midColor = highlightColor.opacity(0.3)
+            bottomColor = highlightColor.opacity(highlightBottomOpacityMultiplier)
         }
-        
+
         if angle == .all {
-            return AngularGradient.init(colors: [topColor], center: .center)
+            return AngularGradient(colors: [topColor], center: .center)
         }
-        
-        var ss = startAngle
-        
+
+        var adjustedStartAngle = startAngle
+
         if angle == .bottomTrailing {
-            ss = ss + .pi
+            adjustedStartAngle = startAngle + .pi
         }
-        
+
         return AngularGradient(
             stops: [
                 .init(color: topColor, location: 0),
@@ -202,7 +155,7 @@ public enum BackgroundShape: Sendable, Shape {
                 .init(color: topColor, location: 1)
             ],
             center: .center,
-            angle: .radians(ss)
+            angle: .radians(adjustedStartAngle)
         )
     }
     
@@ -341,11 +294,14 @@ public struct CustomShape: InsettableShape, Animatable, Sendable {
         let insetRect = rect.insetBy(dx: insetAmount, dy: insetAmount)
         guard insetRect.width > 0, insetRect.height > 0 else { return Path() }
 
+        // Build paths directly instead of instantiating throwaway system shapes
+        // (`RoundedRectangle`, `Capsule`) and asking for their paths — this avoids
+        // per-frame shape allocation during animations.
         switch shape {
         case .roundedRect:
             let maxRadius = min(insetRect.width, insetRect.height) / 2
             let radius = min(animatableCornerRadius, maxRadius)
-            return RoundedRectangle(cornerRadius: radius).path(in: insetRect)
+            return Path(roundedRect: insetRect, cornerRadius: radius, style: .continuous)
 
         case .circle:
             let size = min(insetRect.width, insetRect.height)
@@ -358,7 +314,10 @@ public struct CustomShape: InsettableShape, Animatable, Sendable {
             return Path(ellipseIn: circleRect)
 
         case .capsule:
-            return Capsule().path(in: insetRect)
+            // A capsule is a stadium: a rounded rect whose corner radius equals
+            // half the smaller dimension. Geometrically identical to `Capsule()`.
+            let radius = min(insetRect.width, insetRect.height) / 2
+            return Path(roundedRect: insetRect, cornerRadius: radius, style: .continuous)
         }
     }
 }

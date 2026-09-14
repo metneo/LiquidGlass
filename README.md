@@ -1,30 +1,25 @@
 # LiquidGlass
 
-[![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
-[![Platform](https://img.shields.io/badge/platform-iOS%2015%2B%20%7C%20macOS%2012%2B-lightgrey.svg)](https://developer.apple.com)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Swift Package Manager](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://swift.org/package-manager)
+Fallback support for the Liquid Glass effect on older Apple platforms.
 
-A stunning, lightweight SwiftUI library for creating frosted glass effects with customizable shapes and colors.
+Apple introduced the native `glassEffect(in:)` API on **Platform 26+** (iOS 26 / macOS 26). LiquidGlass gives your SwiftUI views the same frosted-glass look on **older platforms** — before Platform 26 — via a pure-SwiftUI implementation. On Platform 26+ it automatically switches to the system's native effect, so the same API works everywhere.
 
 ![Liquid Glass Preview](Sources/LiquidGlass/Documentation.docc/Resources/LiquidGlass.png)
 
 ## Features
 
-- Realistic frosted glass effects with highlights and shadows
+- Frosted-glass backgrounds with highlights, shadows, and edge lighting
 - Built-in shapes: rounded rectangle, circle, capsule
-- Customizable color tints
-- Optional hover effects for macOS and iPadOS
-- Automatic use of system `glassEffect` API when available (Platform 26+)
-- Minimal dependencies, pure SwiftUI implementation
-- Performance-optimized rendering
-- Dark mode support
+- Customizable color tints, opacity, and light angle
+- Optional shape-matched hover effects (macOS)
+- Ready-made glass button, toggle, and icon label styles
+- Automatic use of the system `glassEffect(in:)` API on Platform 26+; pure-SwiftUI fallback on older platforms
+- Minimal dependencies, dark mode support
 
 ## Requirements
 
-- iOS 15.0+ / macOS 12.0+
-- Xcode 15.0+
-- Swift 5.9+
+- iOS 16.0+ / macOS 12.0+ / tvOS 16.0+ / watchOS 9.0+
+- Swift 5.9+ (Xcode 15.0+)
 
 ## Installation
 
@@ -36,7 +31,7 @@ Add LiquidGlass to your project using Xcode:
 2. Enter the repository URL:
 
    ```text
-   https://github.com/xnxjoe/LiquidGlass.git
+   https://github.com/metneo/LiquidGlass.git
    ```
 
 3. Select the version or branch you want to use
@@ -46,7 +41,7 @@ Or add it to your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/xnxjoe/LiquidGlass.git", from: "1.0.0")
+    .package(url: "https://github.com/metneo/LiquidGlass.git", from: "1.0.0")
 ]
 ```
 
@@ -63,8 +58,6 @@ targets: [
 
 ## Quick Start
 
-### Basic Usage
-
 Import LiquidGlass and apply the glass effect to any SwiftUI view:
 
 ```swift
@@ -80,9 +73,41 @@ struct ContentView: View {
 }
 ```
 
-### Using GlassStyle Directly
+> **Tip:** glass needs something behind it to blur. Layer the glass over a gradient, image, or busy content, or the effect will look flat.
 
-For advanced control, use ``GlassStyle`` as a background:
+### Target a platform version
+
+On Platform 26+ the effect is always the system's native `glassEffect(in:)`. Below Platform 26, the `liquidGlassVersion(_:)` modifier (default `.v26`) picks the **custom fallback look**:
+
+```swift
+// App-wide: use the v27 custom fallback look below Platform 26
+ContentView()
+    .liquidGlassVersion(.v27)
+
+// Per-view: on a LiquidGlass view
+LiquidGlass(shape: .roundedRect(cornerRadius: 14))
+    .liquidGlassVersion(.v27)
+```
+
+`.v26` matches the original look (45° diagonal highlight); `.v27` is a dedicated style (darker border, 0° horizontal highlight).
+
+### Shapes, tint, opacity, hover
+
+```swift
+.liquidGlass(shape: .roundedRect(cornerRadius: 16))
+.liquidGlass(shape: .circle)
+.liquidGlass(shape: .capsule)
+
+.liquidGlass(
+    shape: .capsule,
+    opacity: 0.7,          // 0–1, density of the glass (default 0.6)
+    tint: .blue,           // optional color cast
+    hoverEffect: true,     // shape-matched hover fill (macOS only)
+    angle: .topLeading     // LightAngle: .topLeading, .bottomTrailing, .none, .all
+)
+```
+
+### Using the glass view directly
 
 ```swift
 VStack {
@@ -90,62 +115,40 @@ VStack {
         .padding()
 }
 .background(
-    GlassStyle(shape: .roundedRect(cornerRadius: 20))
+    LiquidGlass(shape: .roundedRect(cornerRadius: 20))
         .tint(.purple)
 )
 ```
 
-## Documentation
+## Component Styles
 
-Full API documentation is available via Swift DocC. See the [Getting Started](Sources/LiquidGlass/Documentation.docc/GettingStarted.md) for details, symbol links, and advanced usage.
-
-## Examples
-
-### Glass Cards
+### Glass button
 
 ```swift
-VStack(alignment: .leading, spacing: 12) {
-    HStack {
-        Image(systemName: "sparkles")
-            .font(.title2)
-            .foregroundStyle(.blue)
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Glass Card")
-                .font(.headline)
-            Text("Beautiful frosted effect")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        Spacer()
-    }
-}
-.padding()
-.liquidGlass(shape: .roundedRect(cornerRadius: 16))
+Button("Primary") { /* action */ }
+    .glassStyleButton(shape: .capsule, prominent: true, tint: .blue)
 ```
 
-### Interactive Elements
+Uses the system `.glass` / `.glassProminent` button styles on Platform 26+, and falls back to a custom `LiquidGlass`-backed button on older platforms.
+
+### Glass toggle
 
 ```swift
-Button("Tap Me") {
-    // Action
-}
-.padding()
-.liquidGlass(shape: .capsule, hoverEffect: true)
-.buttonStyle(.plain)
+Toggle("Wi-Fi", systemImage: "wifi", isOn: $isOn)
+    .toggleStyle(GlassToggleStyle().tint(.blue))
 ```
 
-### Shape Variations
+### Glass icon label
 
 ```swift
-HStack(spacing: 20) {
-    GlassStyle(shape: .roundedRect(cornerRadius: 12))
-        .frame(width: 100, height: 100)
-    GlassStyle(shape: .circle)
-        .frame(width: 100, height: 100)
-    GlassStyle(shape: .capsule)
-        .frame(width: 100, height: 60)
-}
+Label("Settings", systemImage: "gear")
+    .labelStyle(GlassIconLabel(size: 32).tint(.blue).iconFont(.title2))
 ```
+
+## Platform Behavior
+
+- On **Platform 26+** (iOS 26+ / macOS 26+), `.liquidGlass` renders with the system's native `glassEffect(in:)`.
+- On **earlier OS versions**, it automatically falls back to the custom SwiftUI implementation, whose look is chosen by the `liquidGlassVersion(_:)` modifier (`.v26` default, `.v27` dedicated) — same API, no extra work on your side.
 
 ## Color Scheme Adaptation
 
@@ -153,12 +156,18 @@ LiquidGlass automatically adapts to light and dark color schemes:
 
 ![Light Mode](Sources/LiquidGlass/Documentation.docc/Resources/LiquidGlassShape.png) ![Dark Mode](Sources/LiquidGlass/Documentation.docc/Resources/LiquidGlassShape~dark.png)
 
+## Documentation
+
+Full API documentation is available via Swift DocC. See the [Getting Started](Sources/LiquidGlass/Documentation.docc/GettingStarted.md) for details and advanced usage.
+
 ## Architecture
 
-- **BackgroundShape** – Enum defining available shapes with optimized path generation
-- **GlassStyle** – Core view that renders the glass effect with materials and gradients
-- **GlassEffectModifier** – ViewModifier that applies glass backgrounds with Platform 26+ support
-- **View+LiquidGlass** – Convenient extension for easy integration
+- **`BackgroundShape`** – Enum defining available shapes (`roundedRect`, `circle`, `capsule`) with optimized path generation
+- **`LiquidGlass`** – Core view that renders the glass effect with materials and gradients
+- **`GlassEffectModifier`** – ViewModifier with Platform 26+ native support and custom fallback
+- **`LiquidGlassVersion`** – Target platform selector, configurable via the `.liquidGlassVersion(_:)` view modifier
+- **`View+LiquidGlass`** – Convenient view modifier extension (`.liquidGlass`)
+- **`GlassToggleStyle` / `GlassIconLabel`** – Ready-made toggle and icon label styles
 
 ## Contributing
 
@@ -167,10 +176,3 @@ Contributions are welcome! Please submit a Pull Request or open an issue to disc
 ## License
 
 LiquidGlass is available under the MIT license. See the [LICENSE](LICENSE) file for more info.
-
-## Acknowledgments
-
-- Built with Xcode and GitHub Copilot using SwiftUI
-- Inspired by Apple's Liquid Glass Design
-
-If you find this package useful, please consider giving it a star on GitHub!

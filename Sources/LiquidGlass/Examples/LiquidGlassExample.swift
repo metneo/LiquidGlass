@@ -133,8 +133,52 @@ struct LiquidGlassExample: View {
                         .liquidGlass(shape: .roundedRect(cornerRadius: 12), hoverEffect: true)
                 }
                 
+                // MARK: - Target Platform Version Section
+
+                VStack(alignment: .center, spacing: 20) {
+                    Text("Target Platform Version")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal)
+
+                    // Per-view: apply the modifier to any view to target Platform 27
+                    // (darker border, 0° highlight on the custom fallback renderer)
+                    Text("Platform 27")
+                        .font(.headline)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .liquidGlass(shape: .capsule)
+                        .liquidGlassVersion(.v27)
+
+                    // Or set it on a LiquidGlass background directly
+                    Text("Platform 27 (view)")
+                        .font(.headline)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(
+                            LiquidGlass(shape: .capsule)
+                                .liquidGlassVersion(.v27)
+                        )
+
+                    // App-wide: switch a whole subtree with the View modifier
+                    VStack(spacing: 12) {
+                        Text("Platform 26 (default)")
+                            .font(.headline)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .liquidGlass(shape: .capsule)
+
+                        Text("Platform 27")
+                            .font(.headline)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 12)
+                            .liquidGlass(shape: .capsule)
+                    }
+                    .liquidGlassVersion(.v27)
+                }
+
                 // MARK: - Complex Content Section
-                
+
                 VStack(alignment: .leading, spacing: 20) {
                     Text("Complex Content")
                         .font(.title2)
