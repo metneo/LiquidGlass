@@ -68,17 +68,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      # Version comes from Mintfile; install the portable binary so lint does not
-      # depend on brew formula drift or a from-source Mint bootstrap.
-      - name: Install SwiftLint
-        run: |
-          version="$(sed -n 's/^realm\/SwiftLint@//p' Mintfile)"
-          mkdir -p "$HOME/.local/bin"
-          curl -fsSL "https://github.com/realm/SwiftLint/releases/download/${version}/portable_swiftlint.zip" -o /tmp/swiftlint.zip
-          unzip -qo /tmp/swiftlint.zip -d "$HOME/.local/bin"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
+      # Command plugin from SwiftLintPlugins (declared in Package.swift).
+      # The plugin requests package-directory write permission because `--fix`
+      # can edit sources; lint-only still needs the flag in non-interactive CI.
       - name: Run SwiftLint
-        run: |
-          swiftlint version
-          swiftlint lint
+        run: swift package plugin --allow-writing-to-package-directory swiftlint

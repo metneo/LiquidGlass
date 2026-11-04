@@ -35,6 +35,27 @@ jobs:
             --transform-for-static-hosting \
             --hosting-base-path LiquidGlass \
             --output-path docs
+
+      # DocC's root index.html is intentionally blank; content lives under
+      # /documentation/<target-lowercase>. Redirect so the Pages URL works.
+      - name: Redirect Pages root to DocC entry
+        run: |
+          cat > docs/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta http-equiv="refresh" content="0; url=documentation/liquidglass">
+            <link rel="canonical" href="https://metneo.github.io/LiquidGlass/documentation/liquidglass">
+            <title>Redirecting…</title>
+            <script>window.location.replace("documentation/liquidglass");</script>
+          </head>
+          <body>
+            <p>Redirecting to <a href="documentation/liquidglass">LiquidGlass documentation</a>…</p>
+          </body>
+          </html>
+          EOF
+
       - name: Upload documentation artifact
         uses: actions/upload-pages-artifact@v5
         with:
