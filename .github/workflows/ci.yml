@@ -45,7 +45,7 @@ jobs:
             xcode: '27.1'
             swift: '6.4'
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
 
     # Prefer the runner's Xcode over setup-swift: this package processes an
     # asset catalog, so builds need actool from a matching DEVELOPER_DIR.
@@ -59,7 +59,7 @@ jobs:
 
     - name: Cache SwiftPM build products
       id: cache-swiftpm
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: .build
         # Package.resolved is gitignored; invalidate on manifest changes.
@@ -88,7 +88,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # Version comes from Mintfile; install the portable binary so lint does not
       # depend on brew formula drift or a from-source Mint bootstrap.
