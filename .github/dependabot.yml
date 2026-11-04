@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Keep the GitHub Actions used across all workflows current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+
+  # Track Swift package dependencies (currently only the dev-only build-time
+  # swift-docc-plugin; keep the schedule aligned with runtime source updates).
+  - package-ecosystem: swift
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      swift:
+        patterns: ['*']

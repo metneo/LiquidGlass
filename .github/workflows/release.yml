@@ -1,0 +1,52 @@
+name: Release
+
+# Cut a GitHub Release whenever a SemVer tag is pushed (e.g. `git tag 2.1.0 && git push --tags`).
+# The tag must match the plain SemVer form already used by this repo (`1.0.0`, `2.1.0`, ...).
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write          # required to create the Release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        shell: bash
+        run: |
+          version="${{ github.ref_name }}"
+          file="$RUNNER_TEMP/release-notes.md"
+
+          # Keep-a-Changelog format: capture the "## [<version>] - <date>" block
+          # up to the next "## [" heading.
+          # (Uses only POSIX awk — mawk on the runner doesn't support gawk's
+          # 3-arg match(), so extract the version via RSTART/RLENGTH instead.)
+          awk -v ver="$version" '
+            /^## \[/ && match($0, /\[[0-9]+\.[0-9]+\.[0-9]+\]/) {
+              v = substr($0, RSTART + 1, RLENGTH - 2)   # strip the brackets
+              if (v == ver) { capture = 1; next }
+              if (capture) exit
+            }
+            capture { print }
+          ' CHANGELOG.md > "$file"
+
+          # Fallback if the version has no CHANGELOG entry yet.
+          if ! grep -q '[^[:space:]]' "$file"; then
+            printf 'Changes for version %s.\nSee the CHANGELOG for details.\n' "$version" > "$file"
+          fi
+
+          echo "body_path=$file" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          body_path: ${{ steps.changelog.outputs.body_path }}
+          draft: false
+          prerelease: false

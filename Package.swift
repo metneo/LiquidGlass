@@ -18,6 +18,11 @@ let package = Package(
             targets: ["LiquidGlass"]
         )
     ],
+    dependencies: [
+        // Dev-only: enables `swift package generate-documentation` for the Docs
+        // workflow. A build-time plugin, not a runtime dependency.
+        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.3"),
+    ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.

@@ -1,0 +1,54 @@
+name: Docs
+
+# Build the in-repo Documentation.docc catalog and publish it to GitHub Pages.
+# Requires Swift DocC → "Settings → Pages → Build and deployment → GitHub Actions".
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write           # required to publish a Pages artifact
+  id-token: write        # required by actions/deploy-pages
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - name: Set up Swift
+        uses: swift-actions/setup-swift@v2
+        with:
+          swift-version: '6.2'
+      - name: Build DocC archive
+        run: |
+          # `--hosting-base-path`: adjust if you publish to a custom domain or
+          # to a user/org pages site (then use the repo name here).
+          swift package \
+            --allow-writing-to-package-directory \
+            generate-documentation \
+            --target LiquidGlass \
+            --transform-for-static-hosting \
+            --hosting-base-path LiquidGlass \
+            --output-path docs
+      - name: Upload documentation artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
