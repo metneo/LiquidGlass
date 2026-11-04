@@ -21,7 +21,7 @@ let package = Package(
     dependencies: [
         // Dev-only: enables `swift package generate-documentation` for the Docs
         // workflow. A build-time plugin, not a runtime dependency.
-        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.3"),
+        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.5.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
