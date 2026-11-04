@@ -25,41 +25,64 @@ jobs:
   # `soundness` workflow keeps the default token because it posts PR comments
   # for license-header findings.
   build:
-    runs-on: macos-26
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     permissions:
       contents: read
     strategy:
-      fail-fast: false          # keep the other Swift version running even if one fails
+      fail-fast: false          # keep the other toolchain running even if one fails
       matrix:
-        version: [ '5.9', '6.2' ]
+        include:
+          # Xcode 26.2 / Swift 6.2 → Package@swift-5.9.swift (tools < 6.3).
+          # True Swift 5.9 runners are gone; this still exercises the
+          # compatibility manifest with a full Xcode toolchain (incl. actool).
+          - os: macos-26
+            xcode: '26.2'
+            swift: '6.2'
+          # Xcode 27.1 / Swift 6.4 → Package.swift (tools 6.3+).
+          # Label is xcode-27 (macOS 27); there is no macos-27 runner label.
+          - os: xcode-27
+            xcode: '27.1'
+            swift: '6.4'
     steps:
     - uses: actions/checkout@v5
-    - name: Set up Swift
-      uses: swift-actions/setup-swift@v2
-      with:
-        swift-version: ${{ matrix.version }}
+
+    # Prefer the runner's Xcode over setup-swift: this package processes an
+    # asset catalog, so builds need actool from a matching DEVELOPER_DIR.
+    - name: Select Xcode ${{ matrix.xcode }}
+      run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app
+
+    - name: Confirm Swift toolchain
+      run: |
+        xcodebuild -version
+        swift --version
+
     - name: Cache SwiftPM build products
       id: cache-swiftpm
       uses: actions/cache@v4
       with:
         path: .build
-        key: ${{ runner.os }}-swift-${{ matrix.version }}-${{ hashFiles('**/Package.resolved') }}
+        # Package.resolved is gitignored; invalidate on manifest changes.
+        key: ${{ matrix.os }}-xcode-${{ matrix.xcode }}-swiftpm-${{ hashFiles('Package.swift', 'Package@swift-*.swift') }}
         restore-keys: |
-          ${{ runner.os }}-swift-${{ matrix.version }}
+          ${{ matrix.os }}-xcode-${{ matrix.xcode }}-swiftpm-
+
     - name: Build
-      run: swift build -v
+      run: swift build
+
     - name: Run tests
-      run: swift test -v
+      run: swift test
 
   soundness:
     name: Soundness
-    uses: swiftlang/github-workflows/.github/workflows/soundness.yml@main
+    # Pin by commit (not @main). Bump to a release tag once >0.0.17 ships the
+    # workflows-scripts pin fix (swiftlang/github-workflows#345).
+    uses: swiftlang/github-workflows/.github/workflows/soundness.yml@06cbfd087b9b8adb0ffbdae7f951f8b4f79d8473
     with:
       license_header_check_project_name: "LiquidGlass"
 
   lint-test:
-    runs-on: macos-26
+    runs-on: xcode-27
     timeout-minutes: 20
     permissions:
       contents: read
@@ -67,23 +90,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      # Pin SwiftLint to an exact version (via Mint + the Mintfile) so lint is
-      # deterministic, and cache ~/.mint so the (slow) fetch/build only happens once.
-      - name: Cache Mint packages (SwiftLint)
-        id: cache-mint
-        uses: actions/cache@v4
-        with:
-          path: ~/.mint
-          key: ${{ runner.os }}-mint-${{ hashFiles('Mintfile') }}
-
-      - name: Install Mint and bootstrap SwiftLint
-        if: steps.cache-mint.outputs.cache-hit != 'true'
+      # Version comes from Mintfile; install the portable binary so lint does not
+      # depend on brew formula drift or a from-source Mint bootstrap.
+      - name: Install SwiftLint
         run: |
-          brew install mint
-          mint bootstrap
-
-      - name: Add Mint bin to PATH
-        run: echo "$HOME/.mint/bin" >> "$GITHUB_PATH"
+          version="$(sed -n 's/^realm\/SwiftLint@//p' Mintfile)"
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL "https://github.com/realm/SwiftLint/releases/download/${version}/portable_swiftlint.zip" -o /tmp/swiftlint.zip
+          unzip -qo /tmp/swiftlint.zip -d "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Run SwiftLint
-        run: swiftlint lint
+        run: |
+          swiftlint version
+          swiftlint lint
