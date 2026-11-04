@@ -34,14 +34,14 @@ jobs:
       matrix:
         version: [ '5.9', '6.2' ]
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v7
     - name: Set up Swift
-      uses: swift-actions/setup-swift@v2
+      uses: swift-actions/setup-swift@v3
       with:
         swift-version: ${{ matrix.version }}
     - name: Cache SwiftPM build products
       id: cache-swiftpm
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: .build
         key: ${{ runner.os }}-swift-${{ matrix.version }}-${{ hashFiles('**/Package.resolved') }}
@@ -65,13 +65,13 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # Pin SwiftLint to an exact version (via Mint + the Mintfile) so lint is
       # deterministic, and cache ~/.mint so the (slow) fetch/build only happens once.
       - name: Cache Mint packages (SwiftLint)
         id: cache-mint
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.mint
           key: ${{ runner.os }}-mint-${{ hashFiles('Mintfile') }}
