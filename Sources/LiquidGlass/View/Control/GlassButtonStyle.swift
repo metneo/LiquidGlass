@@ -277,4 +277,5 @@ public extension Button {
         .buttonStyle(GlassButtonStyle(shape: .circle))
     }
     .padding()
+    .liquidGlassUsesSystemImplementation(false)
 }

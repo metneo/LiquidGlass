@@ -57,7 +57,7 @@ public extension View {
     ///     .liquidGlassVersion(.v27)
     /// ```
     ///
-    /// - Parameter version: The ``LiquidGlassVersion`` to target. Defaults to
+    /// - Parameter version: The `LiquidGlassVersion` to target. Defaults to
     ///   `.v26` when unset.
     /// - Returns: A view that renders its glass effect for the given version.
     func liquidGlassVersion(_ version: LiquidGlassVersion) -> some View {

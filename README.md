@@ -41,7 +41,7 @@ Or add it to your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/metneo/LiquidGlass.git", from: "1.0.0")
+    .package(url: "https://github.com/metneo/LiquidGlass.git", from: "1.4.1")
 ]
 ```
 
@@ -91,6 +91,17 @@ LiquidGlass(shape: .roundedRect(cornerRadius: 14))
 
 `.v26` matches the original look (45° diagonal highlight); `.v27` is a dedicated style (darker border, 0° horizontal highlight).
 
+### Force the custom renderer
+
+On Platform 26+ the effect uses the system's native `glassEffect(in:)` by default. Pass `false` to `liquidGlassUsesSystemImplementation(_:)` to always use the custom `LiquidGlass` renderer — handy for previewing the fallback look older platforms get, or for keeping one consistent custom style everywhere:
+
+```swift
+Text("Hello, Glass!")
+    .padding()
+    .liquidGlass(shape: .roundedRect(cornerRadius: 16))
+    .liquidGlassUsesSystemImplementation(false)  // always use the custom renderer
+```
+
 ### Shapes, tint, opacity, hover
 
 ```swift
@@ -126,10 +137,10 @@ VStack {
 
 ```swift
 Button("Primary") { /* action */ }
-    .glassStyleButton(shape: .capsule, prominent: true, tint: .blue)
+    .glassStyleButton(shape: .capsule, prominent: true, tint: .blue, opacity: 0.8)
 ```
 
-Uses the system `.glass` / `.glassProminent` button styles on Platform 26+, and falls back to a custom `LiquidGlass`-backed button on older platforms.
+Uses the system `.glass` / `.glassProminent` button styles on Platform 26+, and falls back to a custom `LiquidGlass`-backed button on older platforms. Shape, prominence, tint, and opacity are all customizable.
 
 ### Glass toggle
 

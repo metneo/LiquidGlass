@@ -7,6 +7,54 @@
 
 import SwiftUI
 
+// MARK: - Environment
+
+private struct LiquidGlassUsesSystemImplementationKey: EnvironmentKey {
+    /// Default to the system's native `glassEffect(in:)` on Platform 26+.
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    /// Whether to use the system's native `glassEffect(in:)` on Platform 26+.
+    ///
+    /// When `false`, the custom ``LiquidGlass`` renderer is always used, even on
+    /// platforms that natively support Liquid Glass. Set through the public
+    /// ``SwiftUICore/View/liquidGlassUsesSystemImplementation(_:)`` modifier.
+    /// Defaults to `true`.
+    var liquidGlassUsesSystemImplementation: Bool {
+        get { self[LiquidGlassUsesSystemImplementationKey.self] }
+        set { self[LiquidGlassUsesSystemImplementationKey.self] = newValue }
+    }
+}
+
+public extension View {
+    /// Controls whether the system's native `glassEffect(in:)` is used on
+    /// Platform 26+, or the custom ``LiquidGlass`` implementation.
+    ///
+    /// The library defaults to using Apple's native Liquid Glass on Platform 26+
+    /// (iOS 26 / macOS 26). Pass `false` to force the custom renderer even on
+    /// those platforms — useful for previewing the fallback look that older
+    /// platforms get, or for keeping a consistent custom style everywhere.
+    ///
+    /// Apply it app-wide at a root view, or on an individual view to scope it to
+    /// a subtree.
+    ///
+    /// Example usage:
+    /// ```swift
+    /// Text("Hello, World!")
+    ///     .padding()
+    ///     .liquidGlass(shape: .roundedRect(cornerRadius: 16))
+    ///     .liquidGlassUsesSystemImplementation(false)  // force the custom renderer
+    /// ```
+    ///
+    /// - Parameter usesSystemImplementation: Pass `false` to always use the
+    ///   custom renderer. Defaults to `true` (use the native API when available).
+    /// - Returns: A view with the glass implementation preference applied.
+    func liquidGlassUsesSystemImplementation(_ usesSystemImplementation: Bool) -> some View {
+        environment(\.liquidGlassUsesSystemImplementation, usesSystemImplementation)
+    }
+}
+
 // MARK: - GlassEffectModifier
 
 /// A `ViewModifier` that applies a frosted-glass background to the modified view.
@@ -60,6 +108,10 @@ struct GlassEffectModifier: ViewModifier {
         self.lightAngle = angle
     }
 
+    /// Whether to prefer the native implementation on Platform 26+. When
+    /// `false`, the custom renderer is always used regardless of OS version.
+    @Environment(\.liquidGlassUsesSystemImplementation) private var usesSystemImplementation
+
     func body(content: Content) -> some View {
         renderGlassEffect(content: content)
             .glassHoverEffect(shape: shape, enabled: hoverEffect)
@@ -70,7 +122,7 @@ struct GlassEffectModifier: ViewModifier {
 
     @ViewBuilder
     private func renderGlassEffect(content: Content) -> some View {
-        if #available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *) {
+        if usesSystemImplementation, #available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *) {
             nativeGlass(content)
         } else {
             fallbackGlass(content)

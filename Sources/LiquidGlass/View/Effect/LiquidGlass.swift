@@ -85,11 +85,6 @@ public struct LiquidGlass: View {
         group
     }
     .padding(40)
-    .background(
-        LinearGradient(
-            colors: [.purple.opacity(0.3), .blue.opacity(0.3)],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-    )
+    .background(GlassPreviewBackground())
+    .liquidGlassUsesSystemImplementation(false)
 }

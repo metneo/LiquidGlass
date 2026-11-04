@@ -246,6 +246,7 @@ struct DemoBackground: View {
     .background(
         DemoBackground()
     )
+    .liquidGlassUsesSystemImplementation(false)
 }
 
 #Preview("Shapes") {
@@ -267,11 +268,15 @@ struct DemoBackground: View {
     .background(
         DemoBackground()
     )
+    .liquidGlassVersion(.v27)
+    .liquidGlassUsesSystemImplementation(false)
 }
 
 #Preview("LiquidGlass Gallery") {
     if #available(iOS 15.0, macOS 12.0, *) {
         LiquidGlassExample()
+            .liquidGlassVersion(.v27)
+            .liquidGlassUsesSystemImplementation(false)
     } else {
         Text("Preview requires iOS 15+ or macOS 12+")
     }
@@ -280,6 +285,7 @@ struct DemoBackground: View {
 #Preview("Dark Mode") {
     if #available(iOS 15.0, macOS 12.0, *) {
         LiquidGlassExample()
+            .liquidGlassUsesSystemImplementation(false)
             .preferredColorScheme(.dark)
     } else {
         Text("Preview requires iOS 15+ or macOS 12+")
@@ -289,6 +295,7 @@ struct DemoBackground: View {
 #Preview("Light Mode") {
     if #available(iOS 15.0, macOS 12.0, *) {
         LiquidGlassExample()
+            .liquidGlassUsesSystemImplementation(false)
             .preferredColorScheme(.light)
     } else {
         Text("Preview requires iOS 15+ or macOS 12+")
