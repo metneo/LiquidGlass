@@ -11,10 +11,10 @@ import SwiftUI
 /// ```swift
 /// // Rounded rectangle with 12pt corners
 /// let roundedShape = BackgroundShape.roundedRect(cornerRadius: 12)
-/// 
+///
 /// // Perfect circle
 /// let circleShape = BackgroundShape.circle
-/// 
+///
 /// // Capsule (pill shape)
 /// let capsuleShape = BackgroundShape.capsule
 /// ```
@@ -56,8 +56,8 @@ public enum BackgroundShape: Sendable, Shape {
 
     /// A capsule (pill-shaped) that adapts to the container's aspect ratio.
     case capsule
-    
-    public func gradient(proxy: GeometryProxy, highlighting: Color, tint: Color? = nil, angle: LightAngle) -> AngularGradient {
+
+    internal func gradient(proxy: GeometryProxy, highlighting: Color, tint: Color? = nil, angle: LightAngle) -> AngularGradient {
         switch self {
         case .roundedRect(let radius):
             Self.calculatedGradient(
@@ -87,16 +87,6 @@ public enum BackgroundShape: Sendable, Shape {
         }
     }
 
-    // MARK: - Private Gradient Helpers
-
-    // MARK: - Gradient Constants
-    /// Opacity applied to top gradient stop when using tint (default: 0.15).
-    private static let tintTopOpacityMultiplier: CGFloat = 0.15
-    /// Opacity applied to bottom gradient stop when using tint (default: 0.3).
-    private static let tintBottomOpacityMultiplier: CGFloat = 0.3
-    /// Opacity for bottom gradient stop when not using tint (default: 0.7).
-    private static let highlightBottomOpacityMultiplier: CGFloat = 0.7
-
     /// Creates an angular gradient for shape highlighting.
     ///
     /// - Parameters:
@@ -125,15 +115,14 @@ public enum BackgroundShape: Sendable, Shape {
         let midColor: Color
         let bottomColor: Color
 
-        // Consistent opacity multipliers for both tint and highlight paths
         if let tint = tint {
-            topColor = tint.opacity(tintTopOpacityMultiplier)
+            topColor = tint.opacity(0.15)
             midColor = tint.opacity(0.3)
-            bottomColor = tint.opacity(tintBottomOpacityMultiplier)
+            bottomColor = tint.opacity(0.3)
         } else {
             topColor = highlightColor
             midColor = highlightColor.opacity(0.3)
-            bottomColor = highlightColor.opacity(highlightBottomOpacityMultiplier)
+            bottomColor = highlightColor.opacity(0.7)
         }
 
         if angle == .all {
@@ -158,18 +147,18 @@ public enum BackgroundShape: Sendable, Shape {
             angle: .radians(adjustedStartAngle)
         )
     }
-    
+
     /// Calculates an angular gradient based on shape geometry.
-    /// 
+    ///
     /// This method performs mathematical calculations to determine optimal gradient
     /// angles and positions based on the shape's dimensions and corner radius.
-    /// 
+    ///
     /// - Parameters:
     ///   - highlightColor: Base color for the gradient.
     ///   - tint: Optional tint color for gradient modification.
     ///   - proxy: Geometry proxy providing the shape's dimensions.
     ///   - radius: Corner radius or characteristic radius of the shape.
-    /// 
+    ///
     /// - Returns: An optimized `AngularGradient` for the shape's geometry.
     private static func calculatedGradient(
         highlightColor: Color,
@@ -182,20 +171,20 @@ public enum BackgroundShape: Sendable, Shape {
         let halfHeight = proxy.size.height / 2
         let d = halfWidth - radius
         let l = halfHeight - radius
-        
+
         // Precomputed constant for better performance
         let sqrt2: CGFloat = 1.414213562373095
-        
+
         let a = sqrt2 * l + radius
         let b = d - l
         let t1 = sqrt2 * a
         let t2 = a * a + b * b + sqrt2 * a * b
         let alpha = asin(t1 / (2 * sqrt(t2)))
-        
+
         let startAngle = CGFloat.pi + alpha
         let mid = (CGFloat.pi - 2 * alpha) / (2 * CGFloat.pi)
         let mid2 = 0.5 + mid
-        
+
         return gradient(
             highlightColor: highlightColor,
             tint: tint,
@@ -210,12 +199,12 @@ public enum BackgroundShape: Sendable, Shape {
 // MARK: - CustomShape
 
 /// An animatable, insettable shape that works with `BackgroundShape` enum values.
-/// 
+///
 /// `CustomShape` provides SwiftUI-compatible shape functionality with support for:
 /// - **Animation**: Corner radius and inset changes animate smoothly
 /// - **Insetting**: Shape can be inset for stroke and other effects
 /// - **Sendable**: Thread-safe for use in concurrent contexts
-/// 
+///
 /// ```swift
 /// let shape = BackgroundShape.roundedRect(cornerRadius: 12).shape
 /// shape
@@ -224,23 +213,23 @@ public enum BackgroundShape: Sendable, Shape {
 /// ```
 public struct CustomShape: InsettableShape, Animatable, Sendable {
     // MARK: - Properties
-    
+
     /// Internal inset amount applied to the shape bounds.
     /// This value is animatable and affects the final shape size.
     private var insetAmount: CGFloat = 0.0
-    
+
     /// The corner radius for rounded rectangle shapes.
     /// This property is animatable, allowing smooth transitions between radius values.
     public var animatableCornerRadius: CGFloat
-    
+
     /// The underlying shape type from the `BackgroundShape` enum.
     /// This determines which geometric path will be generated.
     public let shape: BackgroundShape
-    
+
     // MARK: - Animatable Data
-    
+
     /// Combined animatable data for inset amount and corner radius.
-    /// 
+    ///
     /// SwiftUI uses this property to interpolate between different shape states
     /// during animations, ensuring smooth transitions for both inset and radius changes.
     public var animatableData: AnimatablePair<CGFloat, CGFloat> {
@@ -250,11 +239,11 @@ public struct CustomShape: InsettableShape, Animatable, Sendable {
             animatableCornerRadius = newValue.second
         }
     }
-    
+
     // MARK: - Initializer
-    
+
     /// Creates a `CustomShape` from a `BackgroundShape` enum value.
-    /// 
+    ///
     /// - Parameters:
     ///   - shape: The `BackgroundShape` that defines the geometric type.
     ///   - animatableCornerRadius: Initial corner radius for rounded rectangles.
@@ -263,14 +252,14 @@ public struct CustomShape: InsettableShape, Animatable, Sendable {
         self.shape = shape
         self.animatableCornerRadius = animatableCornerRadius
     }
-    
+
     // MARK: - InsettableShape Protocol
-    
+
     /// Returns a copy of the shape inset by the specified amount.
-    /// 
+    ///
     /// Insetting reduces the shape's size on all sides, commonly used for
     /// stroke effects or creating bordered shapes.
-    /// 
+    ///
     /// - Parameter amount: The inset distance in points. Negative values are clamped to 0.
     /// - Returns: A new `CustomShape` with the additional inset applied.
     public func inset(by amount: CGFloat) -> Self {
@@ -280,13 +269,13 @@ public struct CustomShape: InsettableShape, Animatable, Sendable {
     }
 
     // MARK: - Shape Protocol
-    
+
     /// Generates the geometric path for the shape within the given rectangle.
-    /// 
+    ///
     /// This method creates the actual `Path` that SwiftUI uses for rendering,
     /// hit testing, and clipping operations. The path accounts for any applied insets
     /// and shape-specific geometry requirements.
-    /// 
+    ///
     /// - Parameter rect: The rectangle in which to generate the path.
     /// - Returns: A `Path` representing the shape's geometry, or an empty path
     ///           if the inset rectangle has no positive area.

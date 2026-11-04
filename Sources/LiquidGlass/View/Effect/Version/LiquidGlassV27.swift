@@ -181,6 +181,14 @@ private struct HorizontalEdges: InsettableShape, Animatable {
     var cornerRadius: CGFloat
     private var insetAmount: CGFloat = 0
 
+    /// Explicit initializer: the `private` stored property above would otherwise
+    /// pull the synthesized memberwise init down to `private`, making it
+    /// inaccessible from the glass renderer in this file (a Swift-version-sensitive
+    /// rule). Declaring the init keeps it accessible across toolchains.
+    init(cornerRadius: CGFloat) {
+        self.cornerRadius = cornerRadius
+    }
+
     var animatableData: CGFloat {
         get { cornerRadius }
         set { cornerRadius = newValue }
