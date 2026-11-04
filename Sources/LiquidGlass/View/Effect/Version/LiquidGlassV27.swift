@@ -143,9 +143,9 @@ struct LiquidGlassV27: View {
             .overlay {
                 Group {
                     switch shape {
-                    case .roundedRect(let r):
-                        GeometryReader { proxy in
-                            HorizontalEdges(cornerRadius: r)
+                    case .roundedRect(let cornerRadius):
+                        GeometryReader { _ in
+                            HorizontalEdges(cornerRadius: cornerRadius)
                                 .strokeBorder(lensGradient, lineWidth: Self.strokeLineWidth)
                         }
                     case .circle:
@@ -202,9 +202,9 @@ private struct HorizontalEdges: InsettableShape, Animatable {
 
     func path(in rect: CGRect) -> Path {
         let insetRect = rect.insetBy(dx: insetAmount, dy: insetAmount)
-        let r = min(cornerRadius, min(insetRect.width, insetRect.height) / 2)
-        let left = insetRect.minX + r
-        let right = insetRect.maxX - r
+        let edgeInset = min(cornerRadius, min(insetRect.width, insetRect.height) / 2)
+        let left = insetRect.minX + edgeInset
+        let right = insetRect.maxX - edgeInset
 
         var path = Path()
         // Top edge

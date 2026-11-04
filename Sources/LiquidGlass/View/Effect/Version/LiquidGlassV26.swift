@@ -135,12 +135,12 @@ struct LiquidGlassV26: View {
             .overlay {
                 Group {
                     switch shape {
-                    case .roundedRect(let r):
+                    case .roundedRect(let cornerRadius):
                         GeometryReader { proxy in
                             shape
                                 .shape
                                 .stroke(
-                                    calculatedGradient(proxy: proxy, radius: r)
+                                    calculatedGradient(proxy: proxy, radius: cornerRadius)
                                 )
                         }
                     case .circle:
@@ -151,11 +151,11 @@ struct LiquidGlassV26: View {
                             )
                     case .capsule:
                         GeometryReader { proxy in
-                            let r = proxy.size.height / 2
+                            let radius = proxy.size.height / 2
                             shape
                                 .shape
                                 .stroke(
-                                    calculatedGradient(proxy: proxy, radius: r)
+                                    calculatedGradient(proxy: proxy, radius: radius)
                                 )
                         }
                     }
@@ -168,14 +168,14 @@ struct LiquidGlassV26: View {
     private func calculatedGradient(proxy: GeometryProxy, radius: CGFloat) -> AngularGradient {
         let halfWidth = proxy.size.width / 2
         let halfHeight = proxy.size.height / 2
-        let d = halfWidth - radius
-        let l = halfHeight - radius
+        let horizontalGap = halfWidth - radius
+        let verticalGap = halfHeight - radius
         let sqrt2 = sqrt(2)
 
-        let a = sqrt2 * l + radius
-        let b = d - l
-        let t1 = sqrt2 * a
-        let t2 = a * a + b * b + sqrt2 * a * b
+        let cornerDistance = sqrt2 * verticalGap + radius
+        let gapDifference = horizontalGap - verticalGap
+        let t1 = sqrt2 * cornerDistance
+        let t2 = cornerDistance * cornerDistance + gapDifference * gapDifference + sqrt2 * cornerDistance * gapDifference
         let alpha = asin(t1 / (2 * sqrt(t2)))
 
         let startAngle = CGFloat.pi + alpha

@@ -46,7 +46,7 @@ import SwiftUI
 /// - **Platform Adaptive**: Uses system styles on newer platforms, custom rendering on older ones
 /// - **Hover Effects**: Automatic hover states and press feedback
 /// - **Performance Optimized**: Minimal view hierarchy and efficient rendering
-fileprivate struct GlassButtonStyle: ButtonStyle {
+private struct GlassButtonStyle: ButtonStyle {
     // MARK: - Properties
     
     /// The background shape for the button.
@@ -143,7 +143,7 @@ fileprivate struct GlassButtonStyle: ButtonStyle {
     }
 }
 
-fileprivate struct GlassButtonMidifier: ViewModifier {
+private struct GlassButtonMidifier: ViewModifier {
     
     // MARK: - Properties
     
@@ -242,7 +242,6 @@ public extension Button {
         self.modifier(GlassButtonMidifier(shape: shape, prominent: prominent, tint: tint, opacity: opacity))
     }
 }
-
 
 #Preview("Glass Button Styles") {
     VStack(spacing: 20) {
