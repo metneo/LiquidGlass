@@ -22,23 +22,21 @@ jobs:
     runs-on: xcode-27
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v5
-      # Match CI's primary toolchain (Xcode 27.1 / Swift 6.4 → Package.swift).
-      - name: Select Xcode 27.1
-        run: sudo xcode-select -s /Applications/Xcode_27.1.app
+      - uses: actions/checkout@v7
       - name: Build DocC archive
         run: |
-          # `--hosting-base-path`: adjust if you publish to a custom domain or
-          # to a user/org pages site (then use the repo name here).
-          swift package \
-            --allow-writing-to-package-directory \
+          # Project Pages URL is https://<user>.github.io/LiquidGlass/...
+          # so hosting-base-path must be the repo name. Drop it for a custom
+          # domain or a unique-subdomain Pages site that publishes at `/`.
+          swift package --allow-writing-to-directory docs \
             generate-documentation \
             --target LiquidGlass \
+            --disable-indexing \
             --transform-for-static-hosting \
             --hosting-base-path LiquidGlass \
             --output-path docs
       - name: Upload documentation artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: docs
 
@@ -51,4 +49,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

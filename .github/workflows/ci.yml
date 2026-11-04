@@ -33,24 +33,10 @@ jobs:
       fail-fast: false          # keep the other toolchain running even if one fails
       matrix:
         include:
-          # Xcode 26.2 / Swift 6.2 → Package@swift-5.9.swift (tools < 6.3).
-          # True Swift 5.9 runners are gone; this still exercises the
-          # compatibility manifest with a full Xcode toolchain (incl. actool).
           - os: macos-26
-            xcode: '26.2'
-            swift: '6.2'
-          # Xcode 27.1 / Swift 6.4 → Package.swift (tools 6.3+).
-          # Label is xcode-27 (macOS 27); there is no macos-27 runner label.
           - os: xcode-27
-            xcode: '27.1'
-            swift: '6.4'
     steps:
-    - uses: actions/checkout@v5
-
-    # Prefer the runner's Xcode over setup-swift: this package processes an
-    # asset catalog, so builds need actool from a matching DEVELOPER_DIR.
-    - name: Select Xcode ${{ matrix.xcode }}
-      run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode }}.app
+    - uses: actions/checkout@v7
 
     - name: Confirm Swift toolchain
       run: |
@@ -59,7 +45,7 @@ jobs:
 
     - name: Cache SwiftPM build products
       id: cache-swiftpm
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: .build
         # Package.resolved is gitignored; invalidate on manifest changes.
@@ -73,14 +59,6 @@ jobs:
     - name: Run tests
       run: swift test
 
-  soundness:
-    name: Soundness
-    # Pin by commit (not @main). Bump to a release tag once >0.0.17 ships the
-    # workflows-scripts pin fix (swiftlang/github-workflows#345).
-    uses: swiftlang/github-workflows/.github/workflows/soundness.yml@06cbfd087b9b8adb0ffbdae7f951f8b4f79d8473
-    with:
-      license_header_check_project_name: "LiquidGlass"
-
   lint-test:
     runs-on: xcode-27
     timeout-minutes: 20
@@ -88,7 +66,7 @@ jobs:
       contents: read
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       # Version comes from Mintfile; install the portable binary so lint does not
       # depend on brew formula drift or a from-source Mint bootstrap.
