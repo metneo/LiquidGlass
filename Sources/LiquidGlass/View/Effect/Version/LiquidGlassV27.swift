@@ -97,11 +97,9 @@ struct LiquidGlassV27: View {
     private var lensGradient: LinearGradient {
         LinearGradient(
             stops: [
-                .init(color: strokeColor.opacity(0), location: 0),
-                .init(color: strokeColor.opacity(0.6), location: 0.2),
-                .init(color: strokeColor, location: 0.5),
-                .init(color: strokeColor.opacity(0.6), location: 0.8),
-                .init(color: strokeColor.opacity(0), location: 1)
+                .init(color: strokeColor.opacity(0.1), location: 0),
+                .init(color: strokeColor.opacity(0.9), location: 0.5),
+                .init(color: strokeColor.opacity(0.1), location: 1)
             ],
             startPoint: .leading,
             endPoint: .trailing
@@ -137,9 +135,9 @@ struct LiquidGlassV27: View {
             .overlay {
                 shape.shape.fill(highlightGradient)
             }
-            // Decorative stroke: only the straight top and bottom segments get the
-            // highlight (bright at the middle, fading to the corners); the rounded
-            // corners are left unstroked. A circle keeps a full outline highlight.
+            // Decorative stroke: the top and bottom edges get the highlight
+            // (bright at the middle, fading around the rounded corners). A circle
+            // keeps a full outline highlight.
             .overlay {
                 Group {
                     switch shape {
@@ -173,11 +171,12 @@ struct LiquidGlassV27: View {
 
 // MARK: - HorizontalEdges
 
-/// A shape that traces only the straight top and bottom edges of a rounded-rect
-/// style outline, skipping the rounded corner arcs.
+/// A shape that traces the top and bottom edges of a rounded-rect style
+/// outline, including the rounded corner arcs so the highlight extends to the
+/// corners and fades around them.
 private struct HorizontalEdges: InsettableShape, Animatable {
     /// Corner radius of the source shape; the straight segments start/end past
-    /// this inset so the corners are excluded.
+    /// this inset so the corners are rounded.
     var cornerRadius: CGFloat
     private var insetAmount: CGFloat = 0
 
@@ -202,17 +201,43 @@ private struct HorizontalEdges: InsettableShape, Animatable {
 
     func path(in rect: CGRect) -> Path {
         let insetRect = rect.insetBy(dx: insetAmount, dy: insetAmount)
-        let edgeInset = min(cornerRadius, min(insetRect.width, insetRect.height) / 2)
-        let left = insetRect.minX + edgeInset
-        let right = insetRect.maxX - edgeInset
+        let r = min(cornerRadius, min(insetRect.width, insetRect.height) / 2)
+        let x0 = insetRect.minX
+        let y0 = insetRect.minY
+        let width = insetRect.width
+        let height = insetRect.height
+
+        // Corner arc centers.
+        let topLeft = CGPoint(x: x0 + r, y: y0 + r)
+        let topRight = CGPoint(x: x0 + width - r, y: y0 + r)
+        let bottomLeft = CGPoint(x: x0 + r, y: y0 + height - r)
+        let bottomRight = CGPoint(x: x0 + width - r, y: y0 + height - r)
 
         var path = Path()
-        // Top edge
-        path.move(to: CGPoint(x: left, y: insetRect.minY))
-        path.addLine(to: CGPoint(x: right, y: insetRect.minY))
-        // Bottom edge
-        path.move(to: CGPoint(x: left, y: insetRect.maxY))
-        path.addLine(to: CGPoint(x: right, y: insetRect.maxY))
+
+        // Top outline, traced left → right. Each corner arc starts from its own
+        // corner start point (the tangent where the arc leaves the adjacent
+        // vertical side) and sweeps 90° up onto the top edge.
+        path.move(to: CGPoint(x: x0, y: y0 + r))                    // top-left corner start point
+        path.addArc(center: topLeft, radius: r,
+                    startAngle: .degrees(180), endAngle: .degrees(270),
+                    clockwise: false)
+        path.addLine(to: CGPoint(x: x0 + width - r, y: y0))         // top edge
+        path.addArc(center: topRight, radius: r,
+                    startAngle: .degrees(270), endAngle: .degrees(0),
+                    clockwise: false)
+
+        // Bottom outline, the mirror image of the top, traced right → left so
+        // each corner arc likewise starts from its own corner start point.
+        path.move(to: CGPoint(x: x0 + width, y: y0 + height - r))   // bottom-right corner start point
+        path.addArc(center: bottomRight, radius: r,
+                    startAngle: .degrees(0), endAngle: .degrees(90),
+                    clockwise: false)
+        path.addLine(to: CGPoint(x: x0 + r, y: y0 + height))        // bottom edge
+        path.addArc(center: bottomLeft, radius: r,
+                    startAngle: .degrees(90), endAngle: .degrees(180),
+                    clockwise: false)
+
         return path
     }
 }
