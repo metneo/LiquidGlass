@@ -44,7 +44,7 @@ jobs:
           echo "body_path=$file" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           body_path: ${{ steps.changelog.outputs.body_path }}
