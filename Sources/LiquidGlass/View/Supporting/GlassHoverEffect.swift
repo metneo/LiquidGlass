@@ -48,7 +48,11 @@ struct GlassHoverEffect: ViewModifier {
     /// The hover fill style — a quinary fill in dark mode, white in light mode.
     private var hoverStyle: AnyShapeStyle {
         guard enabled && onHover else { return AnyShapeStyle(.clear) }
-        return colorScheme == .dark ? AnyShapeStyle(.quinary) : AnyShapeStyle(.white)
+        if #available(macOS 14.0, iOS 16.0, *) {
+            return colorScheme == .dark ? AnyShapeStyle(.quinary) : AnyShapeStyle(.white)
+        } else {
+            return colorScheme == .dark ? AnyShapeStyle(.gray.opacity(0.3)) : AnyShapeStyle(.white)
+        }
     }
 }
 
