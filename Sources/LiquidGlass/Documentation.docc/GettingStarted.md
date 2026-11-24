@@ -12,6 +12,8 @@ LiquidGlass provides the frosted-glass background effect on older Apple platform
 
 It supports built-in shapes such as rounded rectangles, circles, and capsules, and allows customization of color tints, opacity, and light angle. Optional hover effects are available on macOS.
 
+If your UI is built without SwiftUI, the same effect is available as a plain AppKit or UIKit view — see <doc:AppKitAndUIKit>.
+
 ### Create a liquid glass view
 
 Create a glass effect view using ``LiquidGlass``:
@@ -84,7 +86,7 @@ Text("Tinted Glass")
 
 #### Hover Effect
 
-Enable a shape-matched hover fill on macOS. When hovered, a subtle quaternary fill provides visual feedback.
+Enable a shape-matched hover fill on macOS. When hovered, a subtle fill provides visual feedback — white in light appearance, `.quinary` in dark.
 
 ```swift
 Text("Hover Over Me")
@@ -123,7 +125,25 @@ Label("Settings", systemImage: "gear")
     .labelStyle(GlassIconLabel(size: 32).tint(.blue).iconFont(.title2))
 ```
 
+### AppKit & UIKit
+
+Use ``LiquidGlassView`` when the UI is built without SwiftUI:
+
+```swift
+// macOS
+let glass = LiquidGlassView(shape: .roundedRect(cornerRadius: 16))
+glass.hoverEffect = true
+container.addSubview(glass)
+
+// iOS / tvOS
+let glass = LiquidGlassView(shape: .capsule, tint: UIColor.systemBlue.cgColor)
+view.addSubview(glass)
+```
+
+The platform views paint the same tint wash, highlight, outline, and shadow as the SwiftUI renderer, adapt to light/dark appearance, and expose `frostingOpacity` to tune the frosting's transparency. See <doc:AppKitAndUIKit> for materials, styles, and more.
+
 ### Platform behavior
 
-- On **iOS 26+ / macOS 26+**, the glass modifiers render with the system's native `glassEffect(in:)`.
+- On **iOS 26+ / macOS 26+**, the SwiftUI glass modifiers render with the system's native `glassEffect(in:)`.
 - On **earlier OS versions**, they automatically fall back to the custom SwiftUI implementation — same API, no extra work.
+- The **AppKit and UIKit** views always render the custom effect; they have no native counterpart to switch to.

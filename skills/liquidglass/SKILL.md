@@ -75,7 +75,7 @@ LiquidGlass(shape: .roundedRect(cornerRadius: 14))
     .liquidGlassVersion(.v27)
 ```
 
-`.v26` matches the original look (45° diagonal highlight); `.v27` is a dedicated style (darker border, 0° horizontal highlight).
+`.v26` matches the original look (45° diagonal highlight); `.v27` is a dedicated style (gray full-outline border, horizontal lens highlight).
 
 ## Customize the effect
 

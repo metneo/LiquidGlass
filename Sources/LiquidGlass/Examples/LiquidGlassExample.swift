@@ -142,7 +142,7 @@ struct LiquidGlassExample: View {
                         .padding(.horizontal)
 
                     // Per-view: apply the modifier to any view to target Platform 27
-                    // (darker border, 0° highlight on the custom fallback renderer)
+                    // (gray full-outline border, horizontal lens highlight on the custom renderer)
                     Text("Platform 27")
                         .font(.headline)
                         .padding(.horizontal, 24)

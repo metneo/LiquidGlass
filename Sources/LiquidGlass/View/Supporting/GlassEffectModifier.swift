@@ -77,7 +77,8 @@ public extension View {
 /// On earlier OS versions, it falls back to the custom ``LiquidGlass`` implementation.
 ///
 /// Optional features:
-/// - **Hover effect**: When enabled, shows a subtle quaternary fill on pointer hover.
+/// - **Hover effect**: When enabled, shows a subtle shape-matched fill on pointer hover
+///   (white in light appearance, `.quinary` in dark).
 struct GlassEffectModifier: ViewModifier {
     // MARK: - Constants
     private static let defaultOpacity: CGFloat = 0.6

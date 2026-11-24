@@ -90,7 +90,7 @@ LiquidGlass(shape: .roundedRect(cornerRadius: 14))
     .liquidGlassVersion(.v27)
 ```
 
-`.v26` matches the original look (45° diagonal highlight); `.v27` is a dedicated style (darker border, 0° horizontal highlight).
+`.v26` matches the original look (45° diagonal highlight); `.v27` is a dedicated style (gray full-outline border, horizontal lens highlight).
 
 ### Force custom Liquid Glass
 
@@ -166,7 +166,7 @@ LiquidGlass also ships SwiftUI-free renderers for **AppKit** (macOS) and **UIKit
 The pieces, all part of the `LiquidGlass` module:
 
 - **`LiquidGlassShape`** – SwiftUI-free shape model (`roundedRect`, `circle`, `capsule`) producing `CGPath`s
-- **`LiquidGlassRenderer`** – Quartz drawing of the whole effect: tint wash, highlight fill, v26/v27 outline strokes, dark border
+- **`LiquidGlassRenderer`** – Quartz drawing of the whole effect: tint wash, highlight fill, v26/v27 outline strokes, gray border
 - **`LiquidGlassView`** – the platform host: an `NSView` on macOS and a `UIView` on iOS/tvOS that clips a system material to the shape and paints the renderer on top
 
 ### AppKit (macOS)
@@ -202,7 +202,7 @@ glass.translatesAutoresizingMaskIntoConstraints = false
 view.addLiquidGlassBackground(shape: .roundedRect(cornerRadius: 16))
 ```
 
-The platform views mirror the SwiftUI fallback layer for layer: a system material clipped to the shape, a soft tint wash, a highlight fill, then the v26 angular outline or the v27 lens highlight + dark border, finished with a soft drop shadow — all adapting to light/dark appearance. AppKit follows an appearance-matched default (`.headerView` in light, `.popover` in dark) chosen to best match SwiftUI's `.ultraThinMaterial`, and eases the light-appearance frosting to 65% opacity so it reads as translucent as SwiftUI; UIKit uses `.systemUltraThinMaterial`, which already matches. Both views expose `glass.frostingOpacity` for finer control (`nil` = default, lower = more see-through), and assigning an AppKit material pins it. The AppKit view also supports the macOS pointer-hover fill (`hoverEffect`), matching the SwiftUI `hoverEffect` option; UIKit has no hover, like SwiftUI on iOS.
+The platform views mirror the SwiftUI fallback layer for layer: a system material clipped to the shape, a soft tint wash, a highlight fill, then the v26 angular outline or the v27 lens highlight + gray border, finished with a soft drop shadow — all adapting to light/dark appearance. AppKit follows an appearance-matched default (`.headerView` in light, `.popover` in dark) chosen to best match SwiftUI's `.ultraThinMaterial`, and eases the light-appearance frosting to 65% opacity so it reads as translucent as SwiftUI; UIKit uses `.systemUltraThinMaterial`, which already matches. Both views expose `glass.frostingOpacity` for finer control (`nil` = default, lower = more see-through), and assigning an AppKit material pins it. The AppKit view also supports the macOS pointer-hover fill (`hoverEffect`), matching the SwiftUI `hoverEffect` option; UIKit has no hover, like SwiftUI on iOS.
 
 > **Note:** Core Graphics has no native conic gradient, so the v26 angular outline is drawn as a fine fan of gradient wedges. It reads as smooth on thin outlines, but won't be pixel-identical to SwiftUI's `AngularGradient`.
 
