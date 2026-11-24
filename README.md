@@ -92,16 +92,18 @@ LiquidGlass(shape: .roundedRect(cornerRadius: 14))
 
 `.v26` matches the original look (45° diagonal highlight); `.v27` is a dedicated style (darker border, 0° horizontal highlight).
 
-### Force the custom renderer
+### Force custom Liquid Glass
 
-On Platform 26+ the effect uses the system's native `glassEffect(in:)` by default. Pass `false` to `liquidGlassUsesSystemImplementation(_:)` to always use the custom `LiquidGlass` renderer — handy for previewing the fallback look older platforms get, or for keeping one consistent custom style everywhere:
+On Platform 26+ the effect uses the system's native `glassEffect(in:)` by default. Call `forceToCustomLiquidGlass()` to always use the custom `LiquidGlass` renderer — handy for previewing the fallback look older platforms get, or for keeping one consistent custom style everywhere:
 
 ```swift
 Text("Hello, Glass!")
     .padding()
     .liquidGlass(shape: .roundedRect(cornerRadius: 16))
-    .liquidGlassUsesSystemImplementation(false)  // always use the custom renderer
+    .forceToCustomLiquidGlass()  // always use the custom renderer
 ```
+
+It also applies to glass controls, such as `Button.glassStyleButton(shape:prominent:tint:opacity:)`. Pass `forceToCustomLiquidGlass(false)` to let the native API be used where available. The previous `liquidGlassUsesSystemImplementation(_:)` name is deprecated.
 
 ### Shapes, tint, opacity, hover
 
@@ -164,7 +166,7 @@ LiquidGlass also ships SwiftUI-free renderers for **AppKit** (macOS) and **UIKit
 The pieces, all part of the `LiquidGlass` module:
 
 - **`LiquidGlassShape`** – SwiftUI-free shape model (`roundedRect`, `circle`, `capsule`) producing `CGPath`s
-- **`LiquidGlassRenderer`** – Quartz drawing of the whole effect: tint wash, highlight fill, v26/v27 outline strokes, gray border
+- **`LiquidGlassRenderer`** – Quartz drawing of the whole effect: tint wash, highlight fill, v26/v27 outline strokes, dark border
 - **`LiquidGlassView`** – the platform host: an `NSView` on macOS and a `UIView` on iOS/tvOS that clips a system material to the shape and paints the renderer on top
 
 ### AppKit (macOS)
@@ -176,6 +178,7 @@ import LiquidGlass
 let glass = LiquidGlassView(shape: .roundedRect(cornerRadius: 16))
 glass.tint = NSColor.systemBlue.cgColor
 glass.style = .v26          // or .v27
+glass.hoverEffect = true    // shape-matched pointer-hover fill
 glass.frame = NSRect(x: 0, y: 0, width: 200, height: 100)
 container.addSubview(glass)
 
@@ -199,7 +202,7 @@ glass.translatesAutoresizingMaskIntoConstraints = false
 view.addLiquidGlassBackground(shape: .roundedRect(cornerRadius: 16))
 ```
 
-The platform views mirror the SwiftUI fallback layer for layer: a system material clipped to the shape, a soft tint wash, a highlight fill, then the v26 angular outline or the v27 lens highlight + gray border, finished with a soft drop shadow — all adapting to light/dark appearance. AppKit defaults to the `.popover` material and UIKit to `.systemUltraThinMaterial`; both are configurable.
+The platform views mirror the SwiftUI fallback layer for layer: a system material clipped to the shape, a soft tint wash, a highlight fill, then the v26 angular outline or the v27 lens highlight + dark border, finished with a soft drop shadow — all adapting to light/dark appearance. AppKit follows an appearance-matched default (`.headerView` in light, `.popover` in dark) chosen to best match SwiftUI's `.ultraThinMaterial`, and eases the light-appearance frosting to 65% opacity so it reads as translucent as SwiftUI; UIKit uses `.systemUltraThinMaterial`, which already matches. Both views expose `glass.frostingOpacity` for finer control (`nil` = default, lower = more see-through), and assigning an AppKit material pins it. The AppKit view also supports the macOS pointer-hover fill (`hoverEffect`), matching the SwiftUI `hoverEffect` option; UIKit has no hover, like SwiftUI on iOS.
 
 > **Note:** Core Graphics has no native conic gradient, so the v26 angular outline is drawn as a fine fan of gradient wedges. It reads as smooth on thin outlines, but won't be pixel-identical to SwiftUI's `AngularGradient`.
 
@@ -229,7 +232,7 @@ The visual spec, parameter semantics, and acceptance criteria for the effect are
 - **`View+LiquidGlass`** – Convenient view modifier extension (`.liquidGlass`)
 - **`GlassToggleStyle` / `GlassIconLabel`** – Ready-made toggle and icon label styles
 - **`LiquidGlassShape` / `LiquidGlassRenderer`** – SwiftUI-free shape model and Core Graphics renderer, shared by the AppKit/UIKit host views
-- **`LiquidGlassView`** – AppKit (`NSView`) and UIKit (`UIView`) hosts that render the same effect without SwiftUI
+- **`LiquidGlassView`** – AppKit (`NSView`, with macOS hover) and UIKit (`UIView`) hosts that render the same effect without SwiftUI
 
 ## Contributing
 

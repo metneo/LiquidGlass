@@ -146,16 +146,16 @@ struct LiquidGlassV26: View {
                     case .circle:
                         // Single stroke gradient for circle
                         shape.shape
-                            .stroke(
-                                gradient(startAngle: .pi + .pi / 4, mid1: 0.25, mid2: 0.75)
+                                  .stroke(
+                          gradient(startAngle: .pi + .pi / 4, mid1: 0.25, mid2: 0.75)
                             )
                     case .capsule:
                         GeometryReader { proxy in
                             let radius = proxy.size.height / 2
                             shape
                                 .shape
-                                .stroke(
-                                    calculatedGradient(proxy: proxy, radius: radius)
+                                            .stroke(
+                        calculatedGradient(proxy: proxy, radius: radius)
                                 )
                         }
                     }

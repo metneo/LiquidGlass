@@ -86,5 +86,5 @@ public struct LiquidGlass: View {
     }
     .padding(40)
     .background(GlassPreviewBackground())
-    .liquidGlassUsesSystemImplementation(false)
+    .forceToCustomLiquidGlass()
 }

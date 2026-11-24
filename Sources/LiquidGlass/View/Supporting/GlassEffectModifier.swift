@@ -9,32 +9,35 @@ import SwiftUI
 
 // MARK: - Environment
 
-private struct LiquidGlassUsesSystemImplementationKey: EnvironmentKey {
+private struct LiquidGlassForcesCustomKey: EnvironmentKey {
     /// Default to the system's native `glassEffect(in:)` on Platform 26+.
-    static let defaultValue = true
+    static let defaultValue = false
 }
 
 extension EnvironmentValues {
-    /// Whether to use the system's native `glassEffect(in:)` on Platform 26+.
+    /// Whether to force the custom Liquid Glass renderer even on platforms
+    /// that support the native `glassEffect(in:)` API.
     ///
-    /// When `false`, the custom ``LiquidGlass`` renderer is always used, even on
-    /// platforms that natively support Liquid Glass. Set through the public
-    /// ``SwiftUICore/View/liquidGlassUsesSystemImplementation(_:)`` modifier.
-    /// Defaults to `true`.
-    var liquidGlassUsesSystemImplementation: Bool {
-        get { self[LiquidGlassUsesSystemImplementationKey.self] }
-        set { self[LiquidGlassUsesSystemImplementationKey.self] = newValue }
+    /// Set through the public `forceToCustomLiquidGlass(_:)` modifier. Defaults to
+    /// `false` (use the native API when available).
+    var liquidGlassForcesCustom: Bool {
+        get { self[LiquidGlassForcesCustomKey.self] }
+        set { self[LiquidGlassForcesCustomKey.self] = newValue }
     }
 }
 
 public extension View {
-    /// Controls whether the system's native `glassEffect(in:)` is used on
-    /// Platform 26+, or the custom ``LiquidGlass`` implementation.
+    /// Forces the custom Liquid Glass renderer instead of the system's native
+    /// `glassEffect(in:)` on Platform 26+.
     ///
-    /// The library defaults to using Apple's native Liquid Glass on Platform 26+
-    /// (iOS 26 / macOS 26). Pass `false` to force the custom renderer even on
-    /// those platforms — useful for previewing the fallback look that older
-    /// platforms get, or for keeping a consistent custom style everywhere.
+    /// The library defaults to Apple's native Liquid Glass on Platform 26+
+    /// (iOS 26 / macOS 26). Call this with `true` (the default) to always use
+    /// the custom ``LiquidGlass`` renderer — useful for previewing the fallback
+    /// look that older platforms get, or for keeping a consistent custom style
+    /// everywhere. Pass `false` to let the native API be used where available.
+    ///
+    /// This also applies to glass controls, such as
+    /// `Button.glassStyleButton(shape:prominent:tint:opacity:)`.
     ///
     /// Apply it app-wide at a root view, or on an individual view to scope it to
     /// a subtree.
@@ -44,14 +47,25 @@ public extension View {
     /// Text("Hello, World!")
     ///     .padding()
     ///     .liquidGlass(shape: .roundedRect(cornerRadius: 16))
-    ///     .liquidGlassUsesSystemImplementation(false)  // force the custom renderer
+    ///     .forceToCustomLiquidGlass()  // always use the custom renderer
     /// ```
+    ///
+    /// - Parameter force: Pass `true` (the default) to force the custom
+    ///   renderer, or `false` to allow the native implementation on Platform 26+.
+    /// - Returns: A view with the glass implementation preference applied.
+    func forceToCustomLiquidGlass(_ force: Bool = true) -> some View {
+        environment(\.liquidGlassForcesCustom, force)
+    }
+
+    /// Controls whether the system's native `glassEffect(in:)` is used on
+    /// Platform 26+, or the custom ``LiquidGlass`` implementation.
     ///
     /// - Parameter usesSystemImplementation: Pass `false` to always use the
     ///   custom renderer. Defaults to `true` (use the native API when available).
     /// - Returns: A view with the glass implementation preference applied.
+    @available(*, deprecated, message: "Use .forceToCustomLiquidGlass() instead.")
     func liquidGlassUsesSystemImplementation(_ usesSystemImplementation: Bool) -> some View {
-        environment(\.liquidGlassUsesSystemImplementation, usesSystemImplementation)
+        environment(\.liquidGlassForcesCustom, !usesSystemImplementation)
     }
 }
 
@@ -108,9 +122,8 @@ struct GlassEffectModifier: ViewModifier {
         self.lightAngle = angle
     }
 
-    /// Whether to prefer the native implementation on Platform 26+. When
-    /// `false`, the custom renderer is always used regardless of OS version.
-    @Environment(\.liquidGlassUsesSystemImplementation) private var usesSystemImplementation
+    /// When `true`, always use the custom renderer regardless of OS version.
+    @Environment(\.liquidGlassForcesCustom) private var forcesCustom
 
     func body(content: Content) -> some View {
         renderGlassEffect(content: content)
@@ -122,7 +135,7 @@ struct GlassEffectModifier: ViewModifier {
 
     @ViewBuilder
     private func renderGlassEffect(content: Content) -> some View {
-        if usesSystemImplementation, #available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *) {
+        if !forcesCustom, #available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *) {
             nativeGlass(content)
         } else {
             fallbackGlass(content)

@@ -144,7 +144,14 @@ private struct GlassButtonStyle: ButtonStyle {
 }
 
 private struct GlassButtonMidifier: ViewModifier {
-    
+
+    // MARK: - Environment
+
+    /// When `true`, always render the custom ``GlassButtonStyle`` fallback
+    /// instead of the system `.glass` styles on Platform 26+ — lets previews
+    /// (and apps) force the custom design.
+    @Environment(\.liquidGlassForcesCustom) private var forcesCustom
+
     // MARK: - Properties
     
     /// The background shape for the button.
@@ -227,7 +234,8 @@ private struct GlassButtonMidifier: ViewModifier {
     }
     
     func body(content: Content) -> some View {
-        if #available(macOS 26.0, iOS 26.0, watchOS 26.0, visionOS 26.0, tvOS 26.0, *) {
+        if !forcesCustom,
+           #available(macOS 26.0, iOS 26.0, watchOS 26.0, visionOS 26.0, tvOS 26.0, *) {
             // Use system glass button styles on Platform 26+
             applySystemButtonShape(to: systemGlassButton(content: content))
         } else {
@@ -249,21 +257,19 @@ public extension Button {
         Button("Tap Me!") {
             //
         }
+        .glassStyleButton(shape: .capsule)
         .padding(12)
-        .buttonStyle(GlassButtonStyle(shape: .capsule))
-        
+
         // Prominent tinted button
         Button("Primary Action") {
             //
         }
-        .padding(12)
-        .buttonStyle(
-            GlassButtonStyle(
-                shape: .roundedRect(cornerRadius: 16),
-                prominent: true,
-                tint: .blue
-            )
+        .glassStyleButton(
+            shape: .roundedRect(cornerRadius: 16),
+            prominent: true,
+            tint: .blue
         )
+        .padding(12)
         
         // Circular button
         Button {
@@ -273,8 +279,8 @@ public extension Button {
                 .font(.title2)
                 .padding()
         }
-        .buttonStyle(GlassButtonStyle(shape: .circle))
+        .glassStyleButton(shape: .circle)
     }
     .padding()
-    .liquidGlassUsesSystemImplementation(false)
+    .forceToCustomLiquidGlass()
 }

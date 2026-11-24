@@ -17,7 +17,7 @@ import CoreGraphics
 /// The view hosts a system ``UIVisualEffectView`` (the frosted backdrop,
 /// clipped to a ``LiquidGlassShape`` through a layer mask) and paints the
 /// accent layers — tint wash, highlight fill, decorative outline strokes and
-/// gray border — with ``LiquidGlassRenderer``.
+/// full-outline border — with ``LiquidGlassRenderer``.
 ///
 /// Example:
 /// ```swift
@@ -54,6 +54,17 @@ public final class LiquidGlassView: UIView {
         didSet { effectView.effect = UIBlurEffect(style: blurStyle) }
     }
 
+    /// Opacity of the frosting material view (`0…1`).
+    ///
+    /// Lower values let more of the backdrop through, reading as a more
+    /// transparent glass. `nil` (the default) keeps the material at full
+    /// opacity: UIKit's `.systemUltraThinMaterial` already matches SwiftUI's
+    /// `.ultraThinMaterial`, so no easing is needed. Mirrors the AppKit
+    /// ``LiquidGlassView/frostingOpacity`` control.
+    public var frostingOpacity: CGFloat? {
+        didSet { applyFrostingOpacity() }
+    }
+
     // MARK: - Private hierarchy
 
     private let maskContainer = UIView()
@@ -78,7 +89,8 @@ public final class LiquidGlassView: UIView {
         tint: CGColor? = nil,
         opacity: CGFloat = 0.6,
         style: LiquidGlassRenderer.Style = .v26,
-        blurStyle: UIBlurEffect.Style = .systemUltraThinMaterial
+        blurStyle: UIBlurEffect.Style = .systemUltraThinMaterial,
+        frostingOpacity: CGFloat? = nil
     ) {
         self.init(frame: .zero)
         self.shape = shape
@@ -86,6 +98,7 @@ public final class LiquidGlassView: UIView {
         self.opacity = opacity
         self.style = style
         self.blurStyle = blurStyle
+        self.frostingOpacity = frostingOpacity
     }
 
     public required init?(coder: NSCoder) {
@@ -99,6 +112,9 @@ public final class LiquidGlassView: UIView {
     }
 
     private func commonInit() {
+        // Decorative: never intercept touches, so the view can sit behind (or
+        // inside) interactive content without swallowing its events.
+        isUserInteractionEnabled = false
         for view in [maskContainer, effectView, decoration] {
             view.isUserInteractionEnabled = false
         }
@@ -110,9 +126,14 @@ public final class LiquidGlassView: UIView {
         decoration.tint = tint
         decoration.opacity = opacity
         decoration.style = style
+        applyFrostingOpacity()
 
         updateMask()
         updateShadow()
+    }
+
+    private func applyFrostingOpacity() {
+        effectView.alpha = frostingOpacity ?? 1
     }
 
     // MARK: - Layout
@@ -121,7 +142,10 @@ public final class LiquidGlassView: UIView {
         super.layoutSubviews()
         maskContainer.frame = bounds
         effectView.frame = maskContainer.bounds
-        decoration.frame = bounds
+        decoration.frame = bounds.insetBy(
+            dx: -DecorationView.bleed,
+            dy: -DecorationView.bleed
+        )
         updateMask()
         updateShadow()
     }
@@ -172,6 +196,11 @@ public final class LiquidGlassView: UIView {
 /// Flips the UIKit context to Core Graphics “y up” so the shared renderer sees
 /// the same coordinate convention as on AppKit.
 private final class DecorationView: UIView {
+    /// Margin drawn around the glass shape so centered strokes (notably the
+    /// v27 gray border) can render their outer half, matching SwiftUI's
+    /// unclipped strokes.
+    static let bleed: CGFloat = 2
+
     var shape: LiquidGlassShape = .capsule { didSet { setNeedsDisplay() } }
     var tint: CGColor? { didSet { setNeedsDisplay() } }
     var opacity: CGFloat = 0.6 { didSet { setNeedsDisplay() } }
@@ -191,7 +220,11 @@ private final class DecorationView: UIView {
             opacity: opacity,
             style: style,
             isDark: isDark
-        ).draw(in: context, size: bounds.size)
+        ).draw(
+            in: context,
+            size: bounds.size,
+            shapeRect: bounds.insetBy(dx: Self.bleed, dy: Self.bleed)
+        )
         context.restoreGState()
     }
 }
@@ -206,9 +239,16 @@ public extension UIView {
         shape: LiquidGlassShape,
         tint: CGColor? = nil,
         opacity: CGFloat = 0.6,
-        style: LiquidGlassRenderer.Style = .v26
+        style: LiquidGlassRenderer.Style = .v26,
+        frostingOpacity: CGFloat? = nil
     ) -> LiquidGlassView {
-        let glass = LiquidGlassView(shape: shape, tint: tint, opacity: opacity, style: style)
+        let glass = LiquidGlassView(
+            shape: shape,
+            tint: tint,
+            opacity: opacity,
+            style: style,
+            frostingOpacity: frostingOpacity
+        )
         glass.translatesAutoresizingMaskIntoConstraints = false
         insertSubview(glass, at: 0)
         NSLayoutConstraint.activate([

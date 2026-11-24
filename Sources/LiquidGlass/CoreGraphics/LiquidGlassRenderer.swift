@@ -23,7 +23,7 @@ struct GradientStop {
 /// Quartz-only renderer for the Liquid Glass effect.
 ///
 /// Re-implements the drawing performed by the SwiftUI v26/v27 renderers —
-/// tint wash, highlight fill, decorative outline strokes and gray border —
+/// tint wash, highlight fill, decorative outline strokes and full-outline border —
 /// using nothing but Core Graphics. The frosted backdrop is *not* drawn here:
 /// the host ``LiquidGlassView`` (AppKit or UIKit) owns a system material/blur
 /// view clipped to the shape, and this renderer paints the accent layers on
@@ -78,11 +78,17 @@ public struct LiquidGlassRenderer {
     /// renderer's “y up” convention and already lets the shape's frosted
     /// backdrop show through beneath (typically an `NSVisualEffectView` on
     /// macOS or a `UIVisualEffectView` on iOS/tvOS).
-    public func draw(in context: CGContext, size: CGSize) {
-        let bounds = CGRect(origin: .zero, size: size)
-        guard bounds.width.isFinite, bounds.width > 0,
-              bounds.height.isFinite, bounds.height > 0 else { return }
-        let path = shape.path(in: bounds)
+    ///
+    /// - Parameter shapeRect: The rectangle the glass shape occupies within
+    ///   `context`, in points. Pass a rect inset from the drawable bounds to
+    ///   leave a bleed margin around the shape, so centered strokes can render
+    ///   their outer half (as SwiftUI's unclipped strokes do). Defaults to the
+    ///   full `size`.
+    public func draw(in context: CGContext, size: CGSize, shapeRect: CGRect? = nil) {
+        let shapeBounds = shapeRect ?? CGRect(origin: .zero, size: size)
+        guard shapeBounds.width.isFinite, shapeBounds.width > 0,
+              shapeBounds.height.isFinite, shapeBounds.height > 0 else { return }
+        let path = shape.path(in: shapeBounds)
         let strokeBase = baseStrokeColor()
 
         drawShapeFill(context, path: path, color: tintWashColor())
@@ -90,9 +96,9 @@ public struct LiquidGlassRenderer {
 
         switch style {
         case .v26:
-            drawV26Stroke(context, bounds: bounds, path: path, strokeBase: strokeBase)
+            drawV26Stroke(context, bounds: shapeBounds, path: path, strokeBase: strokeBase)
         case .v27:
-            drawV27Outline(context, bounds: bounds, path: path, strokeBase: strokeBase)
+            drawV27Outline(context, bounds: shapeBounds, path: path, strokeBase: strokeBase)
         }
     }
 
@@ -135,9 +141,12 @@ public struct LiquidGlassRenderer {
     private func drawV26Stroke(
         _ context: CGContext, bounds: CGRect, path: CGPath, strokeBase: CGColor
     ) {
+        // Match SwiftUI's stop alphas exactly. The rim is clipped inside the
+        // shape (SwiftUI's centered stroke leaves half outside), but the inner
+        // band must keep the same color as SwiftUI's inner half.
         let high = Self.withAlpha(strokeBase, strokeBase.alpha * 0.7)
         let low = Self.withAlpha(strokeBase, strokeBase.alpha * 0.1)
-        let (startAngle, mid1, mid2) = v26AngleParameters(bounds: bounds)
+        let (swiftUIStartAngle, mid1, mid2) = v26AngleParameters(bounds: bounds)
 
         let stops = [
             GradientStop(color: high, location: 0),
@@ -149,13 +158,23 @@ public struct LiquidGlassRenderer {
         let radius = sqrt(bounds.width * bounds.width + bounds.height * bounds.height)
 
         context.saveGState()
-        Self.clipStrokedPath(context, path: path, lineWidth: 1, blendMode: .plusLighter)
+        // The host view clips drawing at its bounds, which would shave the
+        // outer half off a centered stroke and leave a ragged sub-pixel line.
+        // Clip to the shape and stroke at twice the width instead so a crisp,
+        // full-width border remains inside the shape.
+        context.addPath(path)
+        context.clip()
+        Self.clipStrokedPath(context, path: path, lineWidth: 2, blendMode: .plusLighter)
+        // SwiftUI measures angular-gradient angles in its y-down coordinate
+        // space; this renderer draws y-up. Mirror the start angle and the
+        // sweep direction so the highlight lands in the same visual corner.
         Self.drawConicGradient(
             in: context,
             stops: stops,
             center: CGPoint(x: bounds.midX, y: bounds.midY),
             radius: radius,
-            startAngle: startAngle
+            startAngle: -swiftUIStartAngle,
+            sweep: -1
         )
         context.restoreGState()
     }
@@ -198,9 +217,15 @@ public struct LiquidGlassRenderer {
     private func drawV27Outline(
         _ context: CGContext, bounds: CGRect, path: CGPath, strokeBase: CGColor
     ) {
-        let lineWidth: CGFloat = 1.2
+        // SwiftUI draws this highlight with `strokeBorder`, i.e. fully inside
+        // the shape. A centered stroke clipped to the shape reproduces that,
+        // so double the width to leave the full 1.2 pt inside the bounds.
+        let visibleWidth: CGFloat = 1.2
+        let lineWidth = visibleWidth * 2
 
         context.saveGState()
+        context.addPath(path)
+        context.clip()
         switch shape {
         case .circle:
             let stops = [
@@ -225,7 +250,11 @@ public struct LiquidGlassRenderer {
         }
         context.restoreGState()
 
-        // Subtle gray full-outline rim.
+        // Full-outline gray border, matching SwiftUI's centered 1 pt
+        // `Color.gray` stroke. It is drawn *unclipped* so its outer 0.5 pt
+        // renders in the host's bleed margin — a half-width clipped border is
+        // barely visible. The inner 0.5 pt still overlaps only the outer edge
+        // of the 1.2 pt lens, leaving the lens readable.
         let border = CGColor(gray: 0.5, alpha: isDark ? 0.1 : 0.2)
         context.saveGState()
         context.addPath(path)
@@ -244,9 +273,9 @@ public struct LiquidGlassRenderer {
     ) {
         let edges = Self.horizontalEdgesPath(rect: bounds, cornerRadius: cornerRadius)
         let stops = [
-            GradientStop(color: Self.withAlpha(strokeBase, strokeBase.alpha * 0.1), location: 0),
+            GradientStop(color: Self.withAlpha(strokeBase, strokeBase.alpha * 0.3), location: 0),
             GradientStop(color: Self.withAlpha(strokeBase, strokeBase.alpha * 0.9), location: 0.5),
-            GradientStop(color: Self.withAlpha(strokeBase, strokeBase.alpha * 0.1), location: 1),
+            GradientStop(color: Self.withAlpha(strokeBase, strokeBase.alpha * 0.3), location: 1),
         ]
         Self.clipStrokedPath(context, path: edges, lineWidth: lineWidth, blendMode: .plusLighter)
         Self.drawLinearGradient(
@@ -285,17 +314,22 @@ public struct LiquidGlassRenderer {
         let bottomLeft = CGPoint(x: x0 + r, y: y0 + height - r)
 
         // Top outline, left → right. Each corner arc starts from its own
-        // tangent point and sweeps onto the top edge.
+        // tangent point and sweeps onto the top edge. The arcs must run
+        // through the *outer* quadrant of each corner circle (increasing
+        // angle), matching SwiftUI's HorizontalEdges (180° → 270° → 0°).
         path.move(to: CGPoint(x: x0, y: y0 + r))
-        path.addArc(center: topLeft, radius: r, startAngle: .pi, endAngle: .pi / 2, clockwise: true)
+        path.addArc(center: topLeft, radius: r, startAngle: .pi, endAngle: 1.5 * .pi, clockwise: false)
         path.addLine(to: CGPoint(x: x0 + width - r, y: y0))
-        path.addArc(center: topRight, radius: r, startAngle: .pi / 2, endAngle: 0, clockwise: true)
+        path.addArc(center: topRight, radius: r, startAngle: 1.5 * .pi, endAngle: 2 * .pi,
+                    clockwise: false)
 
         // Bottom outline, right → left, the mirror image of the top.
         path.move(to: CGPoint(x: x0 + width, y: y0 + height - r))
-        path.addArc(center: bottomRight, radius: r, startAngle: 0, endAngle: -.pi / 2, clockwise: true)
+        path.addArc(center: bottomRight, radius: r, startAngle: 0, endAngle: .pi / 2,
+                    clockwise: false)
         path.addLine(to: CGPoint(x: x0 + r, y: y0 + height))
-        path.addArc(center: bottomLeft, radius: r, startAngle: -.pi / 2, endAngle: -.pi, clockwise: true)
+        path.addArc(center: bottomLeft, radius: r, startAngle: .pi / 2, endAngle: .pi,
+                    clockwise: false)
 
         return path
     }
@@ -319,22 +353,29 @@ public struct LiquidGlassRenderer {
     /// Draws a conic (angular) gradient by filling many thin wedges sampled
     /// around `center`. CG has no native conic gradient, so SwiftUI's
     /// `AngularGradient` is reproduced the way Core Graphics can express it:
-    /// for a thin outline the 180-segment fan reads as smooth.
+    /// for a thin outline the segment fan reads as smooth.
+    ///
+    /// Wedges abut exactly with no overlap: they are composited with
+    /// `.plusLighter`, so any overlap would add alpha twice and show up as
+    /// bright seams along the border.
+    /// - Parameters:
+    ///   - startAngle: Starting angle in this renderer's y-up space.
+    ///   - sweep: `1` sweeps toward increasing angles, `-1` toward decreasing
+    ///     angles (used to mirror SwiftUI's y-down angular direction).
     private static func drawConicGradient(
         in context: CGContext,
         stops: [GradientStop],
         center: CGPoint,
         radius: CGFloat,
-        startAngle: CGFloat
+        startAngle: CGFloat,
+        sweep: CGFloat = 1
     ) {
         guard radius > 0, !stops.isEmpty else { return }
-        let segmentCount = 180
-        let step = 2 * .pi / CGFloat(segmentCount)
-        // Slight overlap so antialiased seams don't appear between wedges.
-        let a1Step = step * 1.05
+        let segmentCount = 240
+        let step = sweep * 2 * .pi / CGFloat(segmentCount)
         for i in 0..<segmentCount {
             let a0 = startAngle + CGFloat(i) * step
-            let a1 = a0 + a1Step
+            let a1 = a0 + step
             let t = (CGFloat(i) + 0.5) / CGFloat(segmentCount)
             context.setFillColor(Self.interpolate(stops: stops, at: t))
             context.move(to: center)

@@ -12,7 +12,7 @@ import SwiftUI
 ///
 /// On the version's platform and newer, the system's native `glassEffect(in:)`
 /// is used. On older platforms it falls back to the custom renderer.
-public enum LiquidGlassVersion: Sendable {
+public enum LiquidGlassVersion: Hashable, Sendable {
     /// Use the native glass effect on Platform 26+ (iOS 26 / macOS 26).
     /// Below that, fall back to the custom renderer.
     case v26
