@@ -97,9 +97,9 @@ struct LiquidGlassV27: View {
     private var lensGradient: LinearGradient {
         LinearGradient(
             stops: [
-                .init(color: strokeColor.opacity(0.3), location: 0),
+                .init(color: strokeColor.opacity(0.0), location: 0),
                 .init(color: strokeColor.opacity(0.9), location: 0.5),
-                .init(color: strokeColor.opacity(0.3), location: 1)
+                .init(color: strokeColor.opacity(0.0), location: 1)
             ],
             startPoint: .leading,
             endPoint: .trailing

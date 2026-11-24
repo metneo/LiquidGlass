@@ -264,18 +264,18 @@ public struct LiquidGlassRenderer {
         context.restoreGState()
     }
 
-    /// The top/bottom “lens” highlight: a linear gradient (100 → 0 → 100
-    /// left-to-right) following the straight edges *and* the rounded corner
-    /// arcs of a rounded-rect-style outline.
+    /// The top/bottom “lens” highlight: a linear gradient (0 → 90% → 0
+    /// left-to-right, transparent at both ends) following the straight edges
+    /// *and* the rounded corner arcs of a rounded-rect-style outline.
     private func drawLensHighlight(
         _ context: CGContext, bounds: CGRect, cornerRadius: CGFloat,
         strokeBase: CGColor, lineWidth: CGFloat
     ) {
         let edges = Self.horizontalEdgesPath(rect: bounds, cornerRadius: cornerRadius)
         let stops = [
-            GradientStop(color: Self.withAlpha(strokeBase, strokeBase.alpha * 0.3), location: 0),
+            GradientStop(color: Self.withAlpha(strokeBase, 0), location: 0),
             GradientStop(color: Self.withAlpha(strokeBase, strokeBase.alpha * 0.9), location: 0.5),
-            GradientStop(color: Self.withAlpha(strokeBase, strokeBase.alpha * 0.3), location: 1),
+            GradientStop(color: Self.withAlpha(strokeBase, 0), location: 1),
         ]
         Self.clipStrokedPath(context, path: edges, lineWidth: lineWidth, blendMode: .plusLighter)
         Self.drawLinearGradient(
