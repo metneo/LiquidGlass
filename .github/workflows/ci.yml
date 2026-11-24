@@ -55,19 +55,17 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
+    env:
+      # Skip Homebrew's slow auto-update on an ephemeral runner.
+      HOMEBREW_NO_AUTO_UPDATE: 1
     steps:
       - uses: actions/checkout@v7
 
-      # SwiftLint isn't a dependency of LiquidGlass itself; it's a command
-      # plugin hosted in `.github/build-tools` (the same builder the Docs
-      # workflow uses for DocC). Copy the sources in, then run the plugin.
-      # `.swiftlint.yml` is gitignored/local-only, so CI uses default rules.
+      # SwiftLint isn't a dependency of LiquidGlass; install the CLI in the
+      # runner and lint the repo directly. `.swiftlint.yml` is gitignored/
+      # local-only, so CI lints with SwiftLint's default rules.
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
       - name: Run SwiftLint
-        run: |
-          mkdir -p .github/build-tools/Sources/LiquidGlass
-          cp -R Sources/LiquidGlass/. .github/build-tools/Sources/LiquidGlass/
-          swift package \
-            --package-path .github/build-tools \
-            plugin \
-            --allow-writing-to-package-directory \
-            swiftlint
+        run: swiftlint lint

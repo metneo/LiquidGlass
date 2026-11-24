@@ -14,6 +14,7 @@ Apple introduced the native `glassEffect(in:)` API on **Platform 26+** (iOS 26 /
 - Optional shape-matched hover effects (macOS)
 - Ready-made glass button, toggle, and icon label styles
 - Automatic use of the system `glassEffect(in:)` API on Platform 26+; pure-SwiftUI fallback on older platforms
+- SwiftUI-free AppKit (macOS) and UIKit (iOS/tvOS) `LiquidGlassView` renderers — pure Core Graphics, no SwiftUI required
 - Minimal dependencies, dark mode support
 
 ## Requirements
@@ -41,7 +42,7 @@ Or add it to your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/metneo/LiquidGlass.git", from: "1.4.1")
+    .package(url: "https://github.com/metneo/LiquidGlass.git", from: "2.2.0")
 ]
 ```
 
@@ -156,6 +157,52 @@ Label("Settings", systemImage: "gear")
     .labelStyle(GlassIconLabel(size: 32).tint(.blue).iconFont(.title2))
 ```
 
+## AppKit & UIKit Versions (No SwiftUI)
+
+LiquidGlass also ships SwiftUI-free renderers for **AppKit** (macOS) and **UIKit** (iOS/tvOS), backed entirely by AppKit/UIKit + Core Graphics. Use them when your UI is built without SwiftUI.
+
+The pieces, all part of the `LiquidGlass` module:
+
+- **`LiquidGlassShape`** – SwiftUI-free shape model (`roundedRect`, `circle`, `capsule`) producing `CGPath`s
+- **`LiquidGlassRenderer`** – Quartz drawing of the whole effect: tint wash, highlight fill, v26/v27 outline strokes, gray border
+- **`LiquidGlassView`** – the platform host: an `NSView` on macOS and a `UIView` on iOS/tvOS that clips a system material to the shape and paints the renderer on top
+
+### AppKit (macOS)
+
+```swift
+import AppKit
+import LiquidGlass
+
+let glass = LiquidGlassView(shape: .roundedRect(cornerRadius: 16))
+glass.tint = NSColor.systemBlue.cgColor
+glass.style = .v26          // or .v27
+glass.frame = NSRect(x: 0, y: 0, width: 200, height: 100)
+container.addSubview(glass)
+
+// Or as a glass background behind existing content:
+container.addLiquidGlassBackground(shape: .capsule, tint: nil)
+```
+
+### UIKit (iOS/tvOS)
+
+```swift
+import UIKit
+import LiquidGlass
+
+let glass = LiquidGlassView(shape: .capsule, tint: UIColor.systemBlue.cgColor)
+glass.opacity = 0.7
+view.addSubview(glass)
+glass.translatesAutoresizingMaskIntoConstraints = false
+// pin the edges with constraints as usual…
+
+// Or as a glass background:
+view.addLiquidGlassBackground(shape: .roundedRect(cornerRadius: 16))
+```
+
+The platform views mirror the SwiftUI fallback layer for layer: a system material clipped to the shape, a soft tint wash, a highlight fill, then the v26 angular outline or the v27 lens highlight + gray border, finished with a soft drop shadow — all adapting to light/dark appearance. AppKit defaults to the `.popover` material and UIKit to `.systemUltraThinMaterial`; both are configurable.
+
+> **Note:** Core Graphics has no native conic gradient, so the v26 angular outline is drawn as a fine fan of gradient wedges. It reads as smooth on thin outlines, but won't be pixel-identical to SwiftUI's `AngularGradient`.
+
 ## Platform Behavior
 
 - On **Platform 26+** (iOS 26+ / macOS 26+), `.liquidGlass` renders with the system's native `glassEffect(in:)`.
@@ -171,6 +218,8 @@ LiquidGlass automatically adapts to light and dark color schemes:
 
 Full API documentation is available via Swift DocC. See the [Getting Started](Sources/LiquidGlass/Documentation.docc/GettingStarted.md) for details and advanced usage.
 
+The visual spec, parameter semantics, and acceptance criteria for the effect are captured in the [UI Requirements](UIRequirements.md) document.
+
 ## Architecture
 
 - **`BackgroundShape`** – Enum defining available shapes (`roundedRect`, `circle`, `capsule`) with optimized path generation
@@ -179,6 +228,8 @@ Full API documentation is available via Swift DocC. See the [Getting Started](So
 - **`LiquidGlassVersion`** – Target platform selector, configurable via the `.liquidGlassVersion(_:)` view modifier
 - **`View+LiquidGlass`** – Convenient view modifier extension (`.liquidGlass`)
 - **`GlassToggleStyle` / `GlassIconLabel`** – Ready-made toggle and icon label styles
+- **`LiquidGlassShape` / `LiquidGlassRenderer`** – SwiftUI-free shape model and Core Graphics renderer, shared by the AppKit/UIKit host views
+- **`LiquidGlassView`** – AppKit (`NSView`) and UIKit (`UIView`) hosts that render the same effect without SwiftUI
 
 ## Contributing
 

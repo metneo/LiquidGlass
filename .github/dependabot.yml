@@ -8,13 +8,3 @@ updates:
     groups:
       actions:
         patterns: ['*']
-
-  # Track the dev command plugins (swift-docc-plugin, SwiftLintPlugins) hosted
-  # by the CI builder package.
-  - package-ecosystem: swift
-    directory: /.github/build-tools
-    schedule:
-      interval: weekly
-    groups:
-      swift:
-        patterns: ['*']

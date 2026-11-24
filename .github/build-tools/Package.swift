@@ -1,19 +1,18 @@
 // swift-tools-version: 6.3
 //
-// Dev command-plugin host for the CI workflows (.github/workflows/*.yml).
+// DocC builder for the Docs workflow (.github/workflows/docs.yml).
 //
-// LiquidGlass deliberately declares NO package dependencies. The command
-// plugins it uses at build time — swift-docc-plugin (Docs) and
-// SwiftLintPlugins (CI lint) — are hosted here instead. Each workflow copies
-// the library's sources into Sources/LiquidGlass and invokes
-// `swift package --package-path .github/build-tools ...` against this package.
+// LiquidGlass deliberately declares NO package dependencies, so the
+// swift-docc-plugin it uses at doc-build time can't live in its manifest.
+// This throwaway package hosts the plugin instead: the workflow copies the
+// library's sources into Sources/LiquidGlass and runs `swift package
+// generate-documentation` against this package.
 import PackageDescription
 
 let package = Package(
     name: "LiquidGlassBuildTools",
     dependencies: [
-        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.5.0"),
-        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.65.1")
+        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.5.0")
     ],
     targets: [
         .target(
