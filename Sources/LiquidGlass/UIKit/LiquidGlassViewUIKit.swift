@@ -31,27 +31,42 @@ public final class LiquidGlassView: UIView {
 
     /// The glass backing shape. Changes re-shape and redraw the effect.
     public var shape: LiquidGlassShape {
-        didSet { shapeDidChange() }
+        didSet {
+            guard shape != oldValue else { return }
+            shapeDidChange()
+        }
     }
 
     /// Optional tint color. `nil` keeps the highlight neutral.
     public var tint: CGColor? {
-        didSet { decoration.setNeedsDisplay() }
+        didSet {
+            guard !Self.colorsEqual(tint, oldValue) else { return }
+            decoration.tint = tint
+        }
     }
 
     /// Gloss intensity of the highlight (0…1). Defaults to 0.6.
     public var opacity: CGFloat {
-        didSet { decoration.setNeedsDisplay() }
+        didSet {
+            guard opacity != oldValue else { return }
+            decoration.opacity = opacity
+        }
     }
 
     /// Decorative outline style (`.v26` or `.v27`).
     public var style: LiquidGlassRenderer.Style {
-        didSet { decoration.setNeedsDisplay() }
+        didSet {
+            guard style != oldValue else { return }
+            decoration.style = style
+        }
     }
 
     /// The system frosted-material style. Defaults to `.systemUltraThinMaterial`.
     public var blurStyle: UIBlurEffect.Style {
-        didSet { effectView.effect = UIBlurEffect(style: blurStyle) }
+        didSet {
+            guard blurStyle != oldValue else { return }
+            effectView.effect = UIBlurEffect(style: blurStyle)
+        }
     }
 
     /// Opacity of the frosting material view (`0…1`).
@@ -62,7 +77,10 @@ public final class LiquidGlassView: UIView {
     /// `.ultraThinMaterial`, so no easing is needed. Mirrors the AppKit
     /// ``LiquidGlassView/frostingOpacity`` control.
     public var frostingOpacity: CGFloat? {
-        didSet { applyFrostingOpacity() }
+        didSet {
+            guard frostingOpacity != oldValue else { return }
+            applyFrostingOpacity()
+        }
     }
 
     // MARK: - Private hierarchy
@@ -105,6 +123,12 @@ public final class LiquidGlassView: UIView {
         self.style = style
         self.blurStyle = blurStyle
         self.frostingOpacity = frostingOpacity
+        // `commonInit()` seeded the decoration with the defaults held before
+        // these assignments. Push the requested configuration explicitly so
+        // initialization does not depend on property observers having run —
+        // otherwise a stale decoration shape draws a capsule rim around a
+        // rounded-rect material.
+        applyConfiguration()
     }
 
     public required init?(coder: NSCoder) {
@@ -136,14 +160,26 @@ public final class LiquidGlassView: UIView {
         frostContainer.addSubview(effectView)
         addSubview(decoration)
 
+        applyConfiguration()
+    }
+
+    /// Pushes the stored configuration into the decoration view and the
+    /// material/shadow layers.
+    ///
+    /// The decoration view holds its own copy of the configuration, so every
+    /// path that changes several settings at once (the convenience initializer
+    /// in particular) must push them through here rather than relying on the
+    /// individual property observers.
+    private func applyConfiguration() {
         decoration.shape = shape
         decoration.tint = tint
         decoration.opacity = opacity
         decoration.style = style
+        effectView.effect = UIBlurEffect(style: blurStyle)
         applyFrostingOpacity()
-
         updateFrosting()
         updateShadow()
+        setNeedsLayout()
     }
 
     private func applyFrostingOpacity() {
@@ -253,6 +289,18 @@ public final class LiquidGlassView: UIView {
 
     private var isDarkAppearance: Bool {
         traitCollection.userInterfaceStyle == .dark
+    }
+
+    /// `CGColor` is not `Equatable`, so compare through Core Foundation.
+    private static func colorsEqual(_ lhs: CGColor?, _ rhs: CGColor?) -> Bool {
+        switch (lhs, rhs) {
+        case (nil, nil):
+            return true
+        case let (lhs?, rhs?):
+            return CFEqual(lhs, rhs)
+        default:
+            return false
+        }
     }
 
     /// Re-renders when the system switches between light and dark appearance.
