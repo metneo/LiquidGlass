@@ -170,6 +170,10 @@ public final class LiquidGlassView: UIView {
 
     private func shapeDidChange() {
         decoration.shape = shape
+        // Keep the material clip in lock-step with the stroke shape; layout may
+        // be deferred, and a stale frost clip would show a capsule/rounded-rect
+        // mismatch against the drawn outline.
+        updateFrosting()
         setNeedsLayout()
     }
 

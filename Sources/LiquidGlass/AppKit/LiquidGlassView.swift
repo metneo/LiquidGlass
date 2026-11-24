@@ -265,6 +265,8 @@ public final class LiquidGlassView: NSView {
 
     private func shapeDidChange() {
         decoration.shape = shape
+        // Keep the material mask/shadow in lock-step with the stroke shape.
+        updateGlassLayers()
         needsLayout = true
     }
 
