@@ -19,8 +19,8 @@ Apple introduced the native `glassEffect(in:)` API on **Platform 26+** (iOS 26 /
 
 ## Requirements
 
-- iOS 16.0+ / macOS 12.0+ / tvOS 16.0+ / watchOS 9.0+
-- Swift 5.9+ (Xcode 15.0+)
+- iOS 15.0+ / macOS 12.0+ / tvOS 15.0+ / watchOS 8.0+
+- Swift 5.7+ (Xcode 14.0+)
 
 ## Installation
 
@@ -42,7 +42,7 @@ Or add it to your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/metneo/LiquidGlass.git", from: "2.2.0")
+    .package(url: "https://github.com/metneo/LiquidGlass.git", from: "2.2.1")
 ]
 ```
 
@@ -219,9 +219,20 @@ LiquidGlass automatically adapts to light and dark color schemes:
 
 ## Documentation
 
-Full API documentation is available via Swift DocC. See the [Getting Started](Sources/LiquidGlass/Documentation.docc/GettingStarted.md) for details and advanced usage.
+Full API documentation is available online in the [LiquidGlass API Reference](https://metneo.github.io/LiquidGlass/documentation/liquidglass/), and via Swift DocC.
 
-The visual spec, parameter semantics, and acceptance criteria for the effect are captured in the [UI Requirements](UIRequirements.md) document.
+## Skill for AI Coding Agents
+
+This repository ships a skill — [`skills/liquidglass/SKILL.md`](skills/liquidglass/SKILL.md) — that teaches AI coding agents (such as Claude Code) how and when to use LiquidGlass: adding the dependency, applying `.liquidGlass(shape:)`, choosing a version with `liquidGlassVersion(_:)`, customizing tint, opacity, and angle, and using the built-in button, toggle, and icon label styles.
+
+Install it by copying the `skills/liquidglass` folder into your agent's skills directory:
+
+```sh
+# Claude Code (user-level) — or use .claude/skills/ inside a project
+cp -R skills/liquidglass ~/.claude/skills/liquidglass
+```
+
+Once installed, the agent picks the skill up automatically whenever you ask for a glass effect in SwiftUI code.
 
 ## Architecture
 
