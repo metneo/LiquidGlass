@@ -10,7 +10,7 @@ Create a glass effect view or use a view modifier.
 
 LiquidGlass provides the frosted-glass background effect on older Apple platforms — before Platform 26, where the system's native `glassEffect(in:)` isn't available. It renders with a pure-SwiftUI implementation so your views get the glass look everywhere, and it automatically switches to the system's native effect on Platform 26+.
 
-It supports built-in shapes such as rounded rectangles, circles, and capsules, and allows customization of color tints, opacity, and light angle. Optional hover effects are available on macOS.
+It supports built-in shapes such as rounded rectangles, circles, and capsules, and allows customization of color tints and opacity. Optional hover effects are available on macOS.
 
 If your UI is built without SwiftUI, the same effect is available as a plain AppKit or UIKit view — see <doc:AppKitAndUIKit>.
 
@@ -24,13 +24,19 @@ import LiquidGlass
 
 struct ContentView: View {
     var body: some View {
-        LiquidGlass(shape: .roundedRect(cornerRadius: 12))
-            .tint(Color.blue)
-            .opacity(0.6)
-            .frame(width: 200, height: 100)
+        LiquidGlass(
+            shape: .roundedRect(cornerRadius: 12),
+            tintColor: .blue,
+            opacity: 0.6
+        )
+        .frame(width: 200, height: 100)
     }
 }
 ```
+
+> Note: Pass `tintColor` and `opacity` to the initializer — the SwiftUI `.tint(_:)` and `.opacity(_:)` modifiers affect the view's environment and rendering as a whole, not the glass tint or density.
+
+``LiquidGlass`` always uses the custom renderer, on every OS version. The native `glassEffect(in:)` switch applies to the `.liquidGlass(shape:opacity:tint:hoverEffect:angle:)` modifier and the built-in component styles, which use the system effect on Platform 26+ unless you call `forceToCustomLiquidGlass()`.
 
 ### Apply the glass effect
 
@@ -94,6 +100,10 @@ Text("Hover Over Me")
     .liquidGlass(shape: .capsule, hoverEffect: true)
 ```
 
+#### Light angle
+
+The modifier accepts a ``LightAngle`` through its `angle` parameter, but the built-in renderers currently use fixed highlight directions: `.v26` draws a 45° angular-gradient outline, and `.v27` a horizontal lens highlight. The parameter is accepted for API compatibility and does not change the custom fallback look.
+
 ### Target a platform version
 
 The glass effect targets an Apple platform version via the `liquidGlassVersion(_:)` modifier (default `.v26`):
@@ -109,6 +119,21 @@ LiquidGlass(shape: .roundedRect(cornerRadius: 14))
 ```
 
 On **Platform 26+** the effect uses the system's native `glassEffect(in:)`. Below Platform 26 it falls back to the custom SwiftUI renderer, whose look depends on the target version: `.v26` (default) matches the original look, `.v27` uses a dedicated style.
+
+### Force the custom renderer
+
+On Platform 26+ the native effect is used by default. Call `forceToCustomLiquidGlass()` to always use the custom ``LiquidGlass`` renderer — useful for previewing the fallback look that older platforms get, or for keeping one consistent custom style everywhere:
+
+```swift
+ContentView()
+    .forceToCustomLiquidGlass()
+
+// Opt back into the native effect where available:
+ContentView()
+    .forceToCustomLiquidGlass(false)
+```
+
+The modifier also applies to glass controls, such as `Button.glassStyleButton(shape:prominent:tint:opacity:)`.
 
 ### Component styles
 
@@ -146,4 +171,5 @@ The platform views paint the same tint wash, highlight, outline, and shadow as t
 
 - On **iOS 26+ / macOS 26+**, the SwiftUI glass modifiers render with the system's native `glassEffect(in:)`.
 - On **earlier OS versions**, they automatically fall back to the custom SwiftUI implementation — same API, no extra work.
-- The **AppKit and UIKit** views always render the custom effect; they have no native counterpart to switch to.
+- **`forceToCustomLiquidGlass()`** opts out of the native API on Platform 26+ and always renders the custom ``LiquidGlass`` style.
+- The **AppKit and UIKit** views always render the custom effect; they have no native counterpart to switch to. Choose their look with ``LiquidGlassRenderer/Style`` rather than `liquidGlassVersion(_:)`.

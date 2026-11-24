@@ -85,12 +85,18 @@ LiquidGlassShape.circle
 LiquidGlassShape.capsule
 ```
 
+## Convenience backgrounds
+
+Both platforms provide `addLiquidGlassBackground(shape:tint:opacity:style:...)`, which inserts a `LiquidGlassView` at the back of the receiver's subview stack and returns it for further tuning. The AppKit variant also takes `hoverEffect:`; the UIKit variant takes `frostingOpacity:`.
+
 ## Styles
 
 ``LiquidGlassRenderer/Style`` selects the decorative outline, matching the SwiftUI target version:
 
-- `.v26` — the original look: a full angular-gradient outline.
+- `.v26` (default) — the original look: a full angular-gradient outline.
 - `.v27` — a horizontal lens highlight along the top and bottom edges plus a full-outline gray border.
+
+Set `style` directly on the view; the platform views do not read the SwiftUI `liquidGlassVersion(_:)` environment.
 
 The v27 border is a centered stroke, so its outer half renders just outside the shape; the 2 pt bleed margin around the decoration lets it stay visible without covering the lens highlight.
 
