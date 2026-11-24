@@ -23,18 +23,26 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
+
+      # swift-docc-plugin lives in `.github/build-tools` — a throwaway builder
+      # package — because LiquidGlass itself declares no dependencies. Copy the
+      # sources in so the builder is complete, then run the plugin.
       - name: Build DocC archive
+        # Project Pages URL is https://<user>.github.io/LiquidGlass/...
+        # so hosting-base-path must be the repo name. Drop it for a custom
+        # domain or a unique-subdomain Pages site that publishes at `/`.
         run: |
-          # Project Pages URL is https://<user>.github.io/LiquidGlass/...
-          # so hosting-base-path must be the repo name. Drop it for a custom
-          # domain or a unique-subdomain Pages site that publishes at `/`.
-          swift package --allow-writing-to-directory docs \
+          mkdir -p .github/build-tools/Sources/LiquidGlass
+          cp -R Sources/LiquidGlass/. .github/build-tools/Sources/LiquidGlass/
+          swift package \
+            --package-path .github/build-tools \
+            --allow-writing-to-directory "$GITHUB_WORKSPACE/docs" \
             generate-documentation \
             --target LiquidGlass \
             --disable-indexing \
             --transform-for-static-hosting \
             --hosting-base-path LiquidGlass \
-            --output-path docs
+            --output-path "$GITHUB_WORKSPACE/docs"
 
       # DocC's root index.html is intentionally blank; content lives under
       # /documentation/<target-lowercase>. Redirect so the Pages URL works.

@@ -6,12 +6,14 @@ on:
     paths-ignore:
       - '**/*.md'
       - 'Sources/**/Documentation.docc/**'
+      - '.github/**'
       - 'LICENSE'
   pull_request:
     branches: [main]
     paths-ignore:
       - '**/*.md'
       - 'Sources/**/Documentation.docc/**'
+      - '.github/**'
       - 'LICENSE'
   workflow_dispatch:
 
@@ -21,9 +23,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Least-privilege: these two jobs only read the repository. The reusable
-  # `soundness` workflow keeps the default token because it posts PR comments
-  # for license-header findings.
   build:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
@@ -43,16 +42,8 @@ jobs:
         xcodebuild -version
         swift --version
 
-    - name: Cache SwiftPM build products
-      id: cache-swiftpm
-      uses: actions/cache@v6
-      with:
-        path: .build
-        # Package.resolved is gitignored; invalidate on manifest changes.
-        key: ${{ matrix.os }}-xcode-${{ matrix.xcode }}-swiftpm-${{ hashFiles('Package.swift', 'Package@swift-*.swift') }}
-        restore-keys: |
-          ${{ matrix.os }}-xcode-${{ matrix.xcode }}-swiftpm-
-
+    # The package declares no external dependencies, so there is no SwiftPM
+    # dependency cache to save/restore — the removed cache step was pure overhead.
     - name: Build
       run: swift build
 
@@ -65,11 +56,18 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
+      - uses: actions/checkout@v7
 
-      # Command plugin from SwiftLintPlugins (declared in Package.swift).
-      # The plugin requests package-directory write permission because `--fix`
-      # can edit sources; lint-only still needs the flag in non-interactive CI.
+      # SwiftLint isn't a dependency of LiquidGlass itself; it's a command
+      # plugin hosted in `.github/build-tools` (the same builder the Docs
+      # workflow uses for DocC). Copy the sources in, then run the plugin.
+      # `.swiftlint.yml` is gitignored/local-only, so CI uses default rules.
       - name: Run SwiftLint
-        run: swift package plugin --allow-writing-to-package-directory swiftlint
+        run: |
+          mkdir -p .github/build-tools/Sources/LiquidGlass
+          cp -R Sources/LiquidGlass/. .github/build-tools/Sources/LiquidGlass/
+          swift package \
+            --package-path .github/build-tools \
+            plugin \
+            --allow-writing-to-package-directory \
+            swiftlint

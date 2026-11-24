@@ -1,4 +1,4 @@
-// swift-tools-version: 5.9
+// swift-tools-version: 5.7
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -17,15 +17,6 @@ let package = Package(
             name: "LiquidGlass",
             targets: ["LiquidGlass"]
         )
-    ],
-    dependencies: [
-        // Dev-only: enables `swift package generate-documentation` for the Docs
-        // workflow. A build-time plugin, not a runtime dependency.
-        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.5.0"),
-        // Dev-only command plugin (`swift package plugin swiftlint`). Not linked
-        // into the library. Plugins repo ships a binary, so SwiftLint is not built
-        // from source. Releases match SwiftLint; 0.57.1 is not published here.
-        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.65.1")
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.

@@ -9,10 +9,10 @@ updates:
       actions:
         patterns: ['*']
 
-  # Track Swift package dependencies (currently only the dev-only build-time
-  # swift-docc-plugin; keep the schedule aligned with runtime source updates).
+  # Track the dev command plugins (swift-docc-plugin, SwiftLintPlugins) hosted
+  # by the CI builder package.
   - package-ecosystem: swift
-    directory: /
+    directory: /.github/build-tools
     schedule:
       interval: weekly
     groups:
