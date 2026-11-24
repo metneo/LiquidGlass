@@ -15,9 +15,9 @@ import CoreGraphics
 /// Core Graphics (no SwiftUI).
 ///
 /// The view hosts a system ``UIVisualEffectView`` (the frosted backdrop,
-/// clipped to a ``LiquidGlassShape`` through a layer mask) and paints the
-/// accent layers — tint wash, highlight fill, decorative outline strokes and
-/// full-outline border — with ``LiquidGlassRenderer``.
+/// clipped to a ``LiquidGlassShape`` with corner-radius clipping) and paints
+/// the accent layers — tint wash, highlight fill, decorative outline strokes
+/// and full-outline border — with ``LiquidGlassRenderer``.
 ///
 /// Example:
 /// ```swift
@@ -67,9 +67,15 @@ public final class LiquidGlassView: UIView {
 
     // MARK: - Private hierarchy
 
-    private let maskContainer = UIView()
+    private let frostContainer = UIView()
     private let effectView = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
     private let decoration = DecorationView()
+
+    /// The last path built for `shape` at a given size; the shadow uses it so the
+    /// path is generated once per geometry change.
+    private var cachedPath: CGPath?
+    private var cachedPathShape: LiquidGlassShape?
+    private var cachedPathSize: CGSize = .zero
 
     // MARK: - Initializers
 
@@ -115,11 +121,19 @@ public final class LiquidGlassView: UIView {
         // Decorative: never intercept touches, so the view can sit behind (or
         // inside) interactive content without swallowing its events.
         isUserInteractionEnabled = false
-        for view in [maskContainer, effectView, decoration] {
+
+        // Transparent hosting: an opaque custom-draw view would composite its
+        // undrawn areas as black over the blur.
+        isOpaque = false
+        backgroundColor = .clear
+        frostContainer.isOpaque = false
+        frostContainer.backgroundColor = .clear
+
+        for view in [frostContainer, effectView, decoration] {
             view.isUserInteractionEnabled = false
         }
-        addSubview(maskContainer)
-        maskContainer.addSubview(effectView)
+        addSubview(frostContainer)
+        frostContainer.addSubview(effectView)
         addSubview(decoration)
 
         decoration.shape = shape
@@ -128,25 +142,29 @@ public final class LiquidGlassView: UIView {
         decoration.style = style
         applyFrostingOpacity()
 
-        updateMask()
+        updateFrosting()
         updateShadow()
     }
 
     private func applyFrostingOpacity() {
-        effectView.alpha = frostingOpacity ?? 1
+        // Avoid touching the effect view's alpha unless an override was set:
+        // UIVisualEffectView expects its alpha to stay at 1 by default.
+        let alpha = frostingOpacity ?? 1
+        if effectView.alpha != alpha {
+            effectView.alpha = alpha
+        }
     }
 
     // MARK: - Layout
 
     public override func layoutSubviews() {
         super.layoutSubviews()
-        maskContainer.frame = bounds
-        effectView.frame = maskContainer.bounds
+        frostContainer.frame = bounds
         decoration.frame = bounds.insetBy(
             dx: -DecorationView.bleed,
             dy: -DecorationView.bleed
         )
-        updateMask()
+        updateFrosting()
         updateShadow()
     }
 
@@ -155,25 +173,78 @@ public final class LiquidGlassView: UIView {
         setNeedsLayout()
     }
 
-    // MARK: - Shape mask + shadow
+    // MARK: - Shape clipping + shadow
 
     /// Clips the frosted backdrop to the glass shape.
-    private func updateMask() {
-        let mask = CAShapeLayer()
-        mask.fillColor = CGColor(gray: 1, alpha: 1)
-        mask.path = shape.path(in: maskContainer.bounds)
-        maskContainer.layer.mask = mask
+    ///
+    /// Uses the effect view's own corner-radius clipping rather than a
+    /// `CAShapeLayer` mask. Masking a `UIVisualEffectView` through an ancestor
+    /// layer can render the backdrop black on recent iOS versions; corner
+    /// radius clipping is supported for all three glass shapes.
+    private func updateFrosting() {
+        let containerBounds = frostContainer.bounds
+        let clipRect: CGRect
+        let radius: CGFloat
+        switch shape {
+        case .roundedRect(let cornerRadius):
+            clipRect = containerBounds
+            radius = min(
+                max(cornerRadius, 0),
+                min(containerBounds.width, containerBounds.height) / 2
+            )
+        case .capsule:
+            clipRect = containerBounds
+            radius = min(containerBounds.width, containerBounds.height) / 2
+        case .circle:
+            let side = min(containerBounds.width, containerBounds.height)
+            clipRect = CGRect(
+                x: containerBounds.midX - side / 2,
+                y: containerBounds.midY - side / 2,
+                width: side,
+                height: side
+            )
+            radius = side / 2
+        }
+
+        withDisabledLayerActions {
+            effectView.frame = clipRect
+            effectView.layer.cornerRadius = radius
+            effectView.clipsToBounds = true
+        }
     }
 
-    /// The soft drop shadow behind the glass composite, drawn by the masked
-    /// container's layer so it sits *behind* the frosted material.
+    /// The soft drop shadow behind the glass composite, drawn by the container's
+    /// layer so it sits *behind* the frosted material.
     private func updateShadow() {
-        let layer = maskContainer.layer
-        layer.shadowColor = CGColor(gray: 0, alpha: 1)
-        layer.shadowOpacity = Float(isDarkAppearance ? 0.1 : 0.05)
-        layer.shadowRadius = 15
-        layer.shadowOffset = CGSize(width: 0, height: -6)
-        layer.shadowPath = shape.path(in: maskContainer.bounds)
+        let layer = frostContainer.layer
+        withDisabledLayerActions {
+            layer.shadowColor = CGColor(gray: 0, alpha: 1)
+            layer.shadowOpacity = Float(isDarkAppearance ? 0.1 : 0.05)
+            layer.shadowRadius = 15
+            layer.shadowOffset = CGSize(width: 0, height: -6)
+            layer.shadowPath = glassPath(in: frostContainer.bounds)
+        }
+    }
+
+    /// Returns the shape path for `rect`, reusing the previous result while the
+    /// shape and size are unchanged.
+    private func glassPath(in rect: CGRect) -> CGPath {
+        if let cachedPath, cachedPathShape == shape, cachedPathSize == rect.size {
+            return cachedPath
+        }
+        let path = shape.path(in: rect)
+        cachedPath = path
+        cachedPathShape = shape
+        cachedPathSize = rect.size
+        return path
+    }
+
+    /// Runs `body` with Core Animation's implicit animations disabled.
+    private func withDisabledLayerActions(_ body: () -> Void) {
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        body()
+        CATransaction.commit()
     }
 
     private var isDarkAppearance: Bool {
@@ -205,6 +276,25 @@ private final class DecorationView: UIView {
     var tint: CGColor? { didSet { setNeedsDisplay() } }
     var opacity: CGFloat = 0.6 { didSet { setNeedsDisplay() } }
     var style: LiquidGlassRenderer.Style = .v26 { didSet { setNeedsDisplay() } }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        configure()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        configure()
+    }
+
+    /// The renderer only paints the accent layers; the frosting must show
+    /// through everywhere else. An opaque backing store would render those
+    /// areas black.
+    private func configure() {
+        isOpaque = false
+        backgroundColor = .clear
+        isUserInteractionEnabled = false
+    }
 
     override func draw(_ rect: CGRect) {
         guard let context = UIGraphicsGetCurrentContext() else { return }
