@@ -5,6 +5,7 @@ name: Release
 # leading `v` is stripped before matching the CHANGELOG entry.
 on:
   push:
+    branches: [main]
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
