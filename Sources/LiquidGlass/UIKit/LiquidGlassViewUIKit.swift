@@ -19,6 +19,11 @@ import CoreGraphics
 /// the accent layers — tint wash, highlight fill, decorative outline strokes
 /// and full-outline border — with ``LiquidGlassRenderer``.
 ///
+/// The view draws no drop shadow: it is typically embedded edge-to-edge in a
+/// host container, whose clipping would cut a shadow that extends past the
+/// view's bounds. Apply elevation (a `shadow…` layer property or the
+/// container's own shadow) on the container instead.
+///
 /// Example:
 /// ```swift
 /// let glass = LiquidGlassView(shape: .roundedRect(cornerRadius: 16))
@@ -89,12 +94,6 @@ public final class LiquidGlassView: UIView {
     private let effectView = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterial))
     private let decoration = DecorationView()
 
-    /// The last path built for `shape` at a given size; the shadow uses it so the
-    /// path is generated once per geometry change.
-    private var cachedPath: CGPath?
-    private var cachedPathShape: LiquidGlassShape?
-    private var cachedPathSize: CGSize = .zero
-
     // MARK: - Initializers
 
     public override init(frame: CGRect) {
@@ -164,7 +163,7 @@ public final class LiquidGlassView: UIView {
     }
 
     /// Pushes the stored configuration into the decoration view and the
-    /// material/shadow layers.
+    /// material layer.
     ///
     /// The decoration view holds its own copy of the configuration, so every
     /// path that changes several settings at once (the convenience initializer
@@ -178,7 +177,6 @@ public final class LiquidGlassView: UIView {
         effectView.effect = UIBlurEffect(style: blurStyle)
         applyFrostingOpacity()
         updateFrosting()
-        updateShadow()
         setNeedsLayout()
     }
 
@@ -201,7 +199,6 @@ public final class LiquidGlassView: UIView {
             dy: -DecorationView.bleed
         )
         updateFrosting()
-        updateShadow()
     }
 
     private func shapeDidChange() {
@@ -213,7 +210,7 @@ public final class LiquidGlassView: UIView {
         setNeedsLayout()
     }
 
-    // MARK: - Shape clipping + shadow
+    // MARK: - Shape clipping
 
     /// Clips the frosted backdrop to the glass shape.
     ///
@@ -253,42 +250,12 @@ public final class LiquidGlassView: UIView {
         }
     }
 
-    /// The soft drop shadow behind the glass composite, drawn by the container's
-    /// layer so it sits *behind* the frosted material.
-    private func updateShadow() {
-        let layer = frostContainer.layer
-        withDisabledLayerActions {
-            layer.shadowColor = CGColor(gray: 0, alpha: 1)
-            layer.shadowOpacity = Float(isDarkAppearance ? 0.1 : 0.05)
-            layer.shadowRadius = 15
-            layer.shadowOffset = CGSize(width: 0, height: -6)
-            layer.shadowPath = glassPath(in: frostContainer.bounds)
-        }
-    }
-
-    /// Returns the shape path for `rect`, reusing the previous result while the
-    /// shape and size are unchanged.
-    private func glassPath(in rect: CGRect) -> CGPath {
-        if let cachedPath, cachedPathShape == shape, cachedPathSize == rect.size {
-            return cachedPath
-        }
-        let path = shape.path(in: rect)
-        cachedPath = path
-        cachedPathShape = shape
-        cachedPathSize = rect.size
-        return path
-    }
-
     /// Runs `body` with Core Animation's implicit animations disabled.
     private func withDisabledLayerActions(_ body: () -> Void) {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         body()
         CATransaction.commit()
-    }
-
-    private var isDarkAppearance: Bool {
-        traitCollection.userInterfaceStyle == .dark
     }
 
     /// `CGColor` is not `Equatable`, so compare through Core Foundation.
@@ -308,7 +275,6 @@ public final class LiquidGlassView: UIView {
         super.traitCollectionDidChange(previousTraitCollection)
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
             decoration.setNeedsDisplay()
-            updateShadow()
         }
     }
 }

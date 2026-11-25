@@ -89,21 +89,34 @@ struct LiquidGlassV27: View {
         highlightColor.opacity(0.75)
     }
 
-    /// Edge highlight for the straight top and bottom segments: bright (100) at
-    /// the middle of the shape, fading to transparent (0) at both corners.
+    /// Edge highlight for the straight top and bottom segments: bright at the
+    /// middle of the shape, fading to transparent at both corners.
     ///
-    /// The outline is split into a left and a right half across the center
-    /// vertical axis, each running **100 → 0** from the top-center outward.
+    /// The falloff is a downward-opening quadratic sampled across the stroke:
+    ///
+    ///     opacity(t) = a * (t - 0.5)² + b
+    ///
+    /// `b` is the peak opacity at the center (t = 0.5); `a` is the curvature,
+    /// negative so the parabola opens downward. The defaults reproduce the
+    /// previous curve: peak 0.9 at the center, with `a = -3.6` taking both
+    /// corners down to 0.
     private var lensGradient: LinearGradient {
-        LinearGradient(
-            stops: [
-                .init(color: strokeColor.opacity(0.0), location: 0),
-                .init(color: strokeColor.opacity(0.9), location: 0.5),
-                .init(color: strokeColor.opacity(0.0), location: 1)
-            ],
-            startPoint: .leading,
-            endPoint: .trailing
-        )
+        // Adjust `a` for curvature (more negative = sharper falloff) and `b`
+        // for the peak brightness at the center.
+        func strokeAlpha(at t: Double, a: Double = -3.6, b: Double = 0.9) -> Double {
+            let offset = t - 0.5
+            return min(max(a * offset * offset + b, 0), 1)
+        }
+
+        // Sample the curve at 0.1 intervals. SwiftUI interpolates linearly
+        // between stops, so denser sampling tracks the quadratic more closely.
+        let steps = 10
+        let stops = (0...steps).map { step -> Gradient.Stop in
+            let t = Double(step) / Double(steps)
+            return .init(color: strokeColor.opacity(strokeAlpha(at: t)), location: t)
+        }
+
+        return LinearGradient(stops: stops, startPoint: .leading, endPoint: .trailing)
     }
 
     /// Full-outline highlight for circles (no straight edges): bright at the top

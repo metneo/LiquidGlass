@@ -19,6 +19,11 @@ import CoreGraphics
 /// accent layers — tint wash, highlight fill, decorative outline strokes and
 /// full-outline border — with ``LiquidGlassRenderer``.
 ///
+/// The view draws no drop shadow: it is typically embedded edge-to-edge in a
+/// host container, whose clipping would cut a shadow that extends past the
+/// view's bounds. Apply elevation (a `shadow…` layer property or the
+/// container's own shadow) on the container instead.
+///
 /// Example:
 /// ```swift
 /// let glass = LiquidGlassView(shape: .roundedRect(cornerRadius: 16))
@@ -154,8 +159,8 @@ public final class LiquidGlassView: NSView {
     /// `CAShapeLayer` on every layout pass would churn layers while resizing.
     private let maskLayer = CAShapeLayer()
 
-    /// The last path built for `shape` at a given size. The mask and the
-    /// shadow share it so the path is generated once per geometry change.
+    /// The last path built for `shape` at a given size, so the path is
+    /// generated once per geometry change.
     private var cachedPath: CGPath?
     private var cachedPathShape: LiquidGlassShape?
     private var cachedPathSize: CGSize = .zero
@@ -202,10 +207,10 @@ public final class LiquidGlassView: NSView {
     private func commonInit() {
         wantsLayer = true
 
-        // Layer-backed NSViews default to `masksToBounds = true`, which clips
-        // the root layer's shadow to the view's frame. The frosted backdrop is
-        // already masked to the shape by `maskContainer`, so the root layer
-        // must let the shadow render outside its bounds.
+        // Layer-backed NSViews default to `masksToBounds = true`. The frosted
+        // backdrop is already masked to the shape by `maskContainer`, but the
+        // decoration view draws with a bleed margin outside the frame (so the
+        // v27 border's outer half survives), which the root layer must not clip.
         layer?.masksToBounds = false
 
         maskContainer.wantsLayer = true
@@ -221,18 +226,6 @@ public final class LiquidGlassView: NSView {
         effectView.blendingMode = .withinWindow
         effectView.state = .active
         applyAutomaticMaterialIfNeeded()
-
-        // The shadow lives on the view's own (unmasked) layer. A mask on the
-        // same layer as the shadow clips the shadow away, so the shape mask
-        // stays on `maskContainer` and the root layer casts the shape-matched
-        // shadow behind the whole composite — matching SwiftUI's `.shadow(...)`
-        // on the effect. Only the shadow's opacity and path vary at runtime;
-        // everything else is fixed, so it is applied once here.
-        if let rootLayer = layer {
-            rootLayer.shadowColor = CGColor(gray: 0, alpha: 1)
-            rootLayer.shadowRadius = 15
-            rootLayer.shadowOffset = CGSize(width: 0, height: -6)
-        }
 
         addSubview(maskContainer)
         maskContainer.addSubview(hoverView)
@@ -265,7 +258,7 @@ public final class LiquidGlassView: NSView {
 
     private func shapeDidChange() {
         decoration.shape = shape
-        // Keep the material mask/shadow in lock-step with the stroke shape.
+        // Keep the material mask in lock-step with the stroke shape.
         updateGlassLayers()
         needsLayout = true
     }
@@ -351,15 +344,14 @@ public final class LiquidGlassView: NSView {
         }
     }
 
-    // MARK: - Shape mask + shadow
+    // MARK: - Shape mask
 
     /// Rebuilds the cached shape path when the geometry changed, then applies
-    /// it to both the backdrop mask and the drop shadow.
+    /// it to the backdrop mask.
     private func updateGlassLayers() {
         let path = glassPath(in: CGRect(origin: .zero, size: bounds.size))
         withDisabledLayerActions {
             updateMask(path: path)
-            updateShadow(path: path)
         }
     }
 
@@ -387,21 +379,8 @@ public final class LiquidGlassView: NSView {
         maskLayer.path = path
     }
 
-    /// The soft drop shadow behind the glass composite. Drawn by the view's
-    /// unmasked root layer so it sits *behind* the frosted material (and is
-    /// not clipped by the material's shape mask), matching the SwiftUI
-    /// `.shadow(...)` on the combined effect.
-    private func updateShadow(path: CGPath) {
-        guard let rootLayer = layer else { return }
-        let opacity = Float(isDarkAppearance ? 0.1 : 0.05)
-        if rootLayer.shadowOpacity != opacity {
-            rootLayer.shadowOpacity = opacity
-        }
-        rootLayer.shadowPath = path
-    }
-
     /// Runs `body` with Core Animation's implicit animations disabled, so the
-    /// mask and shadow snap to the current geometry during live resizing
+    /// mask snaps to the current geometry during live resizing
     /// rather than animating every intermediate size.
     private func withDisabledLayerActions(_ body: () -> Void) {
         CATransaction.begin()
@@ -415,15 +394,12 @@ public final class LiquidGlassView: NSView {
     }
 
     /// Re-renders when the system switches between light and dark appearance
-    /// so the highlight / outline / shadow palettes stay in sync.
+    /// so the highlight / outline palettes stay in sync.
     public override func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
         applyAutomaticMaterialIfNeeded()
         decoration.needsDisplay = true
         updateHoverColor()
-        withDisabledLayerActions {
-            updateShadow(path: glassPath(in: CGRect(origin: .zero, size: bounds.size)))
-        }
     }
 
     /// `CGColor` is not `Equatable`, so compare through Core Foundation.

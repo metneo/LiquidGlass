@@ -68,13 +68,33 @@ private struct AppKitGlassPreview: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 
+                if #available(macOS 26.0, *) {
+                    HStack(spacing: 24) {
+                        Text("Native")
+                            .opacity(0)
+                            .frame(width: 200, height: 60)
+                            .glassEffect(in: .capsule)
+                        
+                        Text("Native")
+                            .opacity(0)
+                            .frame(width: 140, height: 140)
+                            .glassEffect(in: .rect(cornerRadius: 16))
+                        
+                        Text("Native")
+                            .opacity(0)
+                            .frame(width: 140, height: 140)
+                            .glassEffect(.regular.tint(.blue), in: .rect(cornerRadius: 16))
+                    }
+                }
+                
                 HStack(spacing: 24) {
                     LiquidGlass(shape: .capsule)
                         .frame(width: 200, height: 60)
                     LiquidGlass(shape: .roundedRect(cornerRadius: 16))
                         .frame(width: 140, height: 140)
                     LiquidGlass(
-                        shape: .roundedRect(cornerRadius: 16)
+                        shape: .roundedRect(cornerRadius: 16),
+                        tintColor: .blue
                     )
                     .frame(width: 140, height: 140)
                 }

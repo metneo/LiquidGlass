@@ -4,7 +4,7 @@ Render the Liquid Glass effect without SwiftUI.
 
 ## Overview
 
-`LiquidGlassView` brings the same frosted-glass design to apps built directly with AppKit (macOS) and UIKit (iOS/tvOS). The view hosts a system material clipped to a ``LiquidGlassShape`` and paints the accent layers — tint wash, highlight, outline, and shadow — with ``LiquidGlassRenderer``. No SwiftUI dependency is required.
+`LiquidGlassView` brings the same frosted-glass design to apps built directly with AppKit (macOS) and UIKit (iOS/tvOS). The view hosts a system material clipped to a ``LiquidGlassShape`` and paints the accent layers — tint wash, highlight, and outline — with ``LiquidGlassRenderer``. No SwiftUI dependency is required.
 
 The platform views always render the custom effect; there is no native `glassEffect(in:)` counterpart to switch to. Both adapt to light and dark appearance automatically, and both are decorative: they never intercept pointer or touch events.
 
@@ -108,4 +108,23 @@ The platform views share one fixed layer stack with the SwiftUI renderer:
 2. Tint wash (`tint` × 0.2 alpha)
 3. Highlight fill (white in light appearance, black in dark)
 4. Outline (`.v26` or `.v27`)
-5. Soft drop shadow behind the composite
+
+The SwiftUI renderer adds a fifth layer — a soft drop shadow behind the composite. The platform views deliberately omit it: they are normally embedded edge-to-edge in a host container, and the container's clipping would cut a shadow drawn outside the view's bounds. Apply elevation on the host container instead:
+
+```swift
+let shape = LiquidGlassShape.roundedRect(cornerRadius: 16)
+
+// AppKit (y-up layer coordinates: negative height = shadow below)
+container.layer?.shadowColor = NSColor.black.cgColor
+container.layer?.shadowRadius = 15
+container.layer?.shadowOffset = CGSize(width: 0, height: -6)
+container.layer?.shadowOpacity = 0.05
+container.layer?.shadowPath = shape.path(in: container.bounds)
+
+// UIKit (y-down layer coordinates: positive height = shadow below)
+container.layer.shadowColor = UIColor.black.cgColor
+container.layer.shadowRadius = 15
+container.layer.shadowOffset = CGSize(width: 0, height: 6)
+container.layer.shadowOpacity = 0.05
+container.layer.shadowPath = shape.path(in: container.bounds)
+```

@@ -165,7 +165,7 @@ let glass = LiquidGlassView(shape: .capsule, tint: UIColor.systemBlue.cgColor)
 view.addSubview(glass)
 ```
 
-The platform views paint the same tint wash, highlight, outline, and shadow as the SwiftUI renderer, adapt to light/dark appearance, and expose `frostingOpacity` to tune the frosting's transparency. See <doc:AppKitAndUIKit> for materials, styles, and more.
+The platform views paint the same tint wash, highlight, and outline as the SwiftUI renderer, adapt to light/dark appearance, and expose `frostingOpacity` to tune the frosting's transparency. They omit the drop shadow, which a clipping host container would cut; apply elevation on the container instead. See <doc:AppKitAndUIKit> for materials, styles, and more.
 
 ### Platform behavior
 

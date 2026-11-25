@@ -264,19 +264,18 @@ public struct LiquidGlassRenderer {
         context.restoreGState()
     }
 
-    /// The top/bottom “lens” highlight: a linear gradient (0 → 90% → 0
-    /// left-to-right, transparent at both ends) following the straight edges
-    /// *and* the rounded corner arcs of a rounded-rect-style outline.
+    /// The top/bottom “lens” highlight: a linear gradient (left-to-right,
+    /// transparent at both ends) following the straight edges *and* the rounded
+    /// corner arcs of a rounded-rect-style outline.
+    ///
+    /// The falloff follows the same downward-opening quadratic as the SwiftUI
+    /// renderer's `lensGradient`, so the AppKit and UIKit views match it.
     private func drawLensHighlight(
         _ context: CGContext, bounds: CGRect, cornerRadius: CGFloat,
         strokeBase: CGColor, lineWidth: CGFloat
     ) {
         let edges = Self.horizontalEdgesPath(rect: bounds, cornerRadius: cornerRadius)
-        let stops = [
-            GradientStop(color: Self.withAlpha(strokeBase, 0), location: 0),
-            GradientStop(color: Self.withAlpha(strokeBase, strokeBase.alpha * 0.9), location: 0.5),
-            GradientStop(color: Self.withAlpha(strokeBase, 0), location: 1),
-        ]
+        let stops = Self.lensHighlightStops(base: strokeBase)
         Self.clipStrokedPath(context, path: edges, lineWidth: lineWidth, blendMode: .plusLighter)
         Self.drawLinearGradient(
             in: context,
@@ -284,6 +283,34 @@ public struct LiquidGlassRenderer {
             start: CGPoint(x: bounds.minX, y: bounds.midY),
             end: CGPoint(x: bounds.maxX, y: bounds.midY)
         )
+    }
+
+    /// Opacity samples for the v27 lens highlight, a downward-opening
+    /// quadratic sampled across the stroke:
+    ///
+    ///     opacity(t) = a * (t - 0.5)² + b
+    ///
+    /// `b` is the peak opacity at the center (t = 0.5); `a` is the curvature,
+    /// negative so the parabola opens downward. Keep `a`/`b` in step with
+    /// `LiquidGlassV27.lensGradient` in the SwiftUI renderer. The stops are
+    /// sampled at 0.1 intervals; the gradient interpolates linearly between
+    /// them, so denser sampling tracks the quadratic more closely.
+    private static func lensHighlightStops(base: CGColor) -> [GradientStop] {
+        // Adjust `a` for curvature (more negative = sharper falloff) and `b`
+        // for the peak brightness at the center.
+        func opacity(at t: CGFloat, a: CGFloat = -3.6, b: CGFloat = 0.9) -> CGFloat {
+            let offset = t - 0.5
+            return min(max(a * offset * offset + b, 0), 1)
+        }
+
+        let steps = 10
+        return (0...steps).map { step in
+            let t = CGFloat(step) / CGFloat(steps)
+            return GradientStop(
+                color: Self.withAlpha(base, base.alpha * opacity(at: t)),
+                location: t
+            )
+        }
     }
 
     // MARK: - Gradient helpers
