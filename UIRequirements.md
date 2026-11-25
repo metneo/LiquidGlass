@@ -7,7 +7,7 @@
 | **Date** | 2026-11-25 |
 | **Status** | Proposed |
 | **Author** | LiquidGlass maintainers |
-| **Applies to** | v2.2.0+ (SwiftUI renderers, AppKit & UIKit renderers) |
+| **Applies to** | v2.2.4+ (SwiftUI renderers, AppKit & UIKit renderers) |
 
 This document specifies the **visual design requirements**, **parameter semantics**, **platform behavior**, and **acceptance criteria** for the LiquidGlass frosted-glass effect. It is the reference for both the SwiftUI implementation and the SwiftUI-free AppKit/UIKit implementation, which must render to the same visual spec apart from the documented drop-shadow difference.
 

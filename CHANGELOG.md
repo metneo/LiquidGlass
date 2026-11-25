@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.4] - 2026-11-25
+
 ### Added
 
 - **Inactive appearance for the AppKit/UIKit `LiquidGlassView`s.** While the host is inactive, both platform views now swap the frosted treatment for the same flat, opaque neutral fill and 1 pt hairline border the SwiftUI renderers use (drawn by `LiquidGlassRenderer`). AppKit tracks the host window's key status (`NSWindow.isKeyWindow`); UIKit tracks `UITraitCollection.activeAppearance`. Set `appearsActiveOverride` to pin the appearance for previews and snapshots, and read `appearsActive` for the state in effect. New inactive comparison previews were added for both platform views.

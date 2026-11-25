@@ -42,7 +42,7 @@ Or add it to your `Package.swift` file:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/metneo/LiquidGlass.git", from: "2.2.1")
+    .package(url: "https://github.com/metneo/LiquidGlass.git", from: "2.2.4")
 ]
 ```
 
