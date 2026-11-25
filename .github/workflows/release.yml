@@ -1,11 +1,12 @@
 name: Release
 
-# Cut a GitHub Release whenever a SemVer tag is pushed (e.g. `git tag 2.1.0 && git push --tags`).
-# The tag must match the plain SemVer form already used by this repo (`1.0.0`, `2.1.0`, ...).
+# Cut a GitHub Release whenever a SemVer tag is pushed (e.g. `git tag v2.1.0 && git push --tags`).
+# Tags use the `v` prefix already used by this repo (`v1.0.0`, `v2.1.0`, ...); the
+# leading `v` is stripped before matching the CHANGELOG entry.
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 permissions:
   contents: write          # required to create the Release
@@ -20,7 +21,8 @@ jobs:
         id: changelog
         shell: bash
         run: |
-          version="${{ github.ref_name }}"
+          # Tag names carry the `v` prefix; CHANGELOG headings do not.
+          version="${GITHUB_REF_NAME#v}"
           file="$RUNNER_TEMP/release-notes.md"
 
           # Keep-a-Changelog format: capture the "## [<version>] - <date>" block
