@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.7] - 2026-11-26
+
+### Fixed
+
+- **The SwiftUI renderers build on the package's minimum deployment targets again.** `LiquidGlassV26` and `LiquidGlassV27` referenced the system `appearsActive` environment value unguarded, but that key exists only on iOS 18 / macOS 15 / tvOS 18 / watchOS 11 while the package supports iOS 15 / macOS 12 / tvOS 15 / watchOS 8. Both now read a new back-deployed `EnvironmentValues.liquidGlassAppearsActive` accessor: on iOS 18 / macOS 15 and later it tracks the system value and swaps to `InactiveGlass` when inactive, and on earlier runtimes it reports `true`, so the glass keeps its active treatment.
+- Referencing Platform 26 SDK APIs (`glassEffect(in:)`, `.glass` / `.glassProminent` button styles) is now gated at compile time as well as at runtime, so the package builds against SDKs that predate Platform 26.
+
 ## [2.2.4] - 2026-11-25
 
 ### Added

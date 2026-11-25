@@ -36,7 +36,7 @@ struct LiquidGlassV27: View {
     /// Respect system color scheme for subtle color adjustments.
     @Environment(\.colorScheme) private var colorScheme
     
-    @Environment(\.appearsActive) private var appearsActive
+    @Environment(\.liquidGlassAppearsActive) private var appearsActive
 
     // MARK: - Constants
 
