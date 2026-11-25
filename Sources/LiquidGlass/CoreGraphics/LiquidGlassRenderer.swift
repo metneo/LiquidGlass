@@ -53,6 +53,13 @@ public struct LiquidGlassRenderer {
     public var style: Style
     /// Whether the dark appearance palette should be used.
     public var isDark: Bool
+    /// Whether to draw the inactive stand-in instead of the glass effect.
+    ///
+    /// While the host window is inactive, the accent layers lose the contrast
+    /// that makes the glass read as glass. The hosts therefore swap the whole
+    /// effect for the flat, opaque neutral treatment inactive system controls
+    /// use — the same stand-in SwiftUI renders via `InactiveGlass`.
+    public var isInactive: Bool
 
     // MARK: - Initializer
 
@@ -61,13 +68,15 @@ public struct LiquidGlassRenderer {
         tint: CGColor? = nil,
         opacity: CGFloat = 0.6,
         style: Style = .v26,
-        isDark: Bool = false
+        isDark: Bool = false,
+        isInactive: Bool = false
     ) {
         self.shape = shape
         self.tint = tint
         self.opacity = opacity
         self.style = style
         self.isDark = isDark
+        self.isInactive = isInactive
     }
 
     // MARK: - Public API
@@ -89,6 +98,14 @@ public struct LiquidGlassRenderer {
         guard shapeBounds.width.isFinite, shapeBounds.width > 0,
               shapeBounds.height.isFinite, shapeBounds.height > 0 else { return }
         let path = shape.path(in: shapeBounds)
+
+        // The inactive stand-in replaces the entire effect — material, tint,
+        // highlight, and outline — with an opaque fill and a hairline border.
+        if isInactive {
+            drawInactive(context, path: path)
+            return
+        }
+
         let strokeBase = baseStrokeColor()
 
         drawShapeFill(context, path: path, color: tintWashColor())
@@ -100,6 +117,50 @@ public struct LiquidGlassRenderer {
         case .v27:
             drawV27Outline(context, bounds: shapeBounds, path: path, strokeBase: strokeBase)
         }
+    }
+
+    // MARK: - Inactive stand-in
+
+    /// Draws the flat, opaque treatment used while the host window is
+    /// inactive, mirroring SwiftUI's `InactiveGlass`.
+    ///
+    /// The fill is fully opaque so content stacked underneath cannot show
+    /// through, and tint/style/opacity are intentionally ignored. The 1 pt
+    /// border is a centered stroke, so its outer half renders in the host's
+    /// bleed margin exactly as SwiftUI's unclipped `.stroke` does.
+    private func drawInactive(_ context: CGContext, path: CGPath) {
+        context.saveGState()
+        context.addPath(path)
+        context.setFillColor(inactiveFillColor)
+        context.fillPath()
+        context.restoreGState()
+
+        context.saveGState()
+        context.addPath(path)
+        context.setStrokeColor(inactiveBorderColor)
+        context.setLineWidth(1)
+        context.strokePath()
+        context.restoreGState()
+    }
+
+    /// Opaque neutral fill: near-white gray in light appearance, a slightly
+    /// lifted dark gray in dark appearance (matching `InactiveGlass`).
+    ///
+    /// Created in sRGB — not device gray — so the values match SwiftUI's
+    /// `Color(white:)`, which is sRGB.
+    private var inactiveFillColor: CGColor {
+        inactiveGray(isDark ? 0.21 : 0.94)
+    }
+
+    /// Hairline bezel border, just darker (light) or lighter (dark) than the
+    /// fill so the shape still reads against the window background.
+    private var inactiveBorderColor: CGColor {
+        inactiveGray(isDark ? 0.11 : 0.78)
+    }
+
+    /// An opaque sRGB gray, matching SwiftUI's `Color(white:)` color space.
+    private func inactiveGray(_ white: CGFloat) -> CGColor {
+        CGColor(srgbRed: white, green: white, blue: white, alpha: 1)
     }
 
     // MARK: - Base fills

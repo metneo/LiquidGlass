@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Inactive appearance for the AppKit/UIKit `LiquidGlassView`s.** While the host is inactive, both platform views now swap the frosted treatment for the same flat, opaque neutral fill and 1 pt hairline border the SwiftUI renderers use (drawn by `LiquidGlassRenderer`). AppKit tracks the host window's key status (`NSWindow.isKeyWindow`); UIKit tracks `UITraitCollection.activeAppearance`. Set `appearsActiveOverride` to pin the appearance for previews and snapshots, and read `appearsActive` for the state in effect. New inactive comparison previews were added for both platform views.
+
 ### Fixed
 
 - **AppKit/UIKit `LiquidGlassView` no longer draws a drop shadow.** The shadow was painted outside the view's bounds, so when the glass was embedded edge-to-edge in a host container the container's clipping cut it off (on AppKit, a layer-backed parent clips by default). Elevation now belongs to the host container — see the AppKit & UIKit DocC guide for per-platform `layer.shadow…` setup. The SwiftUI renderer's shadow is unchanged.

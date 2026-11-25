@@ -8,6 +8,22 @@ Render the Liquid Glass effect without SwiftUI.
 
 The platform views always render the custom effect; there is no native `glassEffect(in:)` counterpart to switch to. Both adapt to light and dark appearance automatically, and both are decorative: they never intercept pointer or touch events.
 
+## Active and inactive appearance
+
+Like the SwiftUI renderers, both platform views swap the frosted treatment for a flat, opaque neutral fill with a 1 pt hairline border while their host is inactive — the same stand-in SwiftUI's `InactiveGlass` draws. The fill is fully opaque, so content stacked underneath does not show through; `tint`, `opacity`, and `style` are ignored while inactive.
+
+The state is tracked automatically:
+
+- **AppKit** follows the host window's key status (`NSWindow.isKeyWindow`), mirroring SwiftUI's `appearsActive` on macOS.
+- **UIKit** follows the scene's `UITraitCollection.activeAppearance`, the trait SwiftUI's `appearsActive` bridges to.
+
+Set `appearsActiveOverride` to `true` or `false` to pin the appearance — useful for previews and snapshot tests. `nil` (the default) resumes automatic tracking. Read `appearsActive` for the appearance currently in effect.
+
+```swift
+glass.appearsActiveOverride = false   // pin the inactive stand-in
+glass.appearsActiveOverride = nil     // follow the window/scene again
+```
+
 ## AppKit
 
 ```swift

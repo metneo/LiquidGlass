@@ -19,9 +19,10 @@ private struct AppKitGlass: NSViewRepresentable {
     var style: LiquidGlassRenderer.Style = .v26
     var material: NSVisualEffectView.Material? = nil
     var hoverEffect: Bool = false
+    var appearsActive: Bool? = nil
 
     func makeNSView(context: Context) -> LiquidGlassView {
-        LiquidGlassView(
+        let view = LiquidGlassView(
             shape: shape,
             tint: tint,
             opacity: opacity,
@@ -29,6 +30,8 @@ private struct AppKitGlass: NSViewRepresentable {
             material: material,
             hoverEffect: hoverEffect
         )
+        view.appearsActiveOverride = appearsActive
+        return view
     }
 
     func updateNSView(_ view: LiquidGlassView, context: Context) {
@@ -38,11 +41,50 @@ private struct AppKitGlass: NSViewRepresentable {
         view.style = style
         if let material { view.material = material }
         view.hoverEffect = hoverEffect
+        view.appearsActiveOverride = appearsActive
     }
 }
 
 #Preview("AppKit Liquid Glass") {
     AppKitGlassPreview()
+}
+
+#Preview("AppKit Liquid Glass · Inactive") {
+    AppKitGlassInactivePreview()
+}
+
+/// Compares the SwiftUI inactive stand-in with the pure-AppKit view pinned to
+/// the inactive appearance.
+private struct AppKitGlassInactivePreview: View {
+    var body: some View {
+        ZStack {
+            GlassPreviewBackground()
+                .ignoresSafeArea()
+
+            VStack(spacing: 24) {
+                Text("Inactive appearance — SwiftUI (top) vs AppKit (bottom)")
+                    .font(.headline)
+
+                HStack(spacing: 24) {
+                    InactiveGlass(shape: .capsule)
+                        .frame(width: 200, height: 60)
+                    InactiveGlass(shape: .roundedRect(cornerRadius: 16))
+                        .frame(width: 140, height: 140)
+                }
+
+                HStack(spacing: 24) {
+                    AppKitGlass(shape: .capsule, appearsActive: false)
+                        .frame(width: 200, height: 60)
+                    AppKitGlass(
+                        shape: .roundedRect(cornerRadius: 16),
+                        appearsActive: false
+                    )
+                    .frame(width: 140, height: 140)
+                }
+            }
+            .padding(40)
+        }
+    }
 }
 
 /// Preview host that drives both the SwiftUI fallback and the pure-AppKit

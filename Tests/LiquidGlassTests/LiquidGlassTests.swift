@@ -1,4 +1,5 @@
 @testable import LiquidGlass
+import CoreGraphics
 import Foundation
 import SwiftUI
 import Testing
@@ -208,6 +209,81 @@ func testStrokeFalloffSampling() async throws {
     #expect(samples.last?.location == 1)
     #expect(samples.first?.alpha == 0)
     #expect(samples.last?.alpha == 0)
+}
+
+// MARK: - Inactive Renderer Tests
+
+@Test("Inactive renderer paints an opaque neutral fill")
+func testInactiveRendererFill() throws {
+    func centerPixel(isDark: Bool) throws -> (r: UInt8, g: UInt8, b: UInt8, a: UInt8) {
+        let width = 64
+        let height = 64
+        let bytesPerRow = width * 4
+        let context = try #require(CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.clear(CGRect(x: 0, y: 0, width: width, height: height))
+        LiquidGlassRenderer(
+            shape: .roundedRect(cornerRadius: 8),
+            isDark: isDark,
+            isInactive: true
+        ).draw(in: context, size: CGSize(width: width, height: height))
+
+        let data = try #require(context.data).assumingMemoryBound(to: UInt8.self)
+        let index = (height / 2) * bytesPerRow + (width / 2) * 4
+        return (data[index], data[index + 1], data[index + 2], data[index + 3])
+    }
+
+    let light = try centerPixel(isDark: false)
+    #expect(light.a == 255, "Inactive fill must be fully opaque")
+    #expect(light.r == light.g && light.g == light.b, "Inactive fill must be neutral gray")
+    #expect(abs(Int(light.r) - 240) <= 2, "Light inactive fill should be near-white")
+
+    let dark = try centerPixel(isDark: true)
+    #expect(dark.a == 255, "Inactive fill must be fully opaque")
+    #expect(dark.r == dark.g && dark.g == dark.b, "Inactive fill must be neutral gray")
+    #expect(abs(Int(dark.r) - 54) <= 2, "Dark inactive fill should be a lifted dark gray")
+}
+
+@Test("Inactive renderer ignores tint, opacity, and style")
+func testInactiveRendererIgnoresParameters() throws {
+    func centerPixel() throws -> [UInt8] {
+        let size = 32
+        let bytesPerRow = size * 4
+        let context = try #require(CGContext(
+            data: nil,
+            width: size,
+            height: size,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.clear(CGRect(x: 0, y: 0, width: size, height: size))
+        LiquidGlassRenderer(
+            shape: .capsule,
+            tint: CGColor(red: 1, green: 0, blue: 0, alpha: 1),
+            opacity: 0.2,
+            style: .v27,
+            isDark: false,
+            isInactive: true
+        ).draw(in: context, size: CGSize(width: size, height: size))
+
+        let data = try #require(context.data).assumingMemoryBound(to: UInt8.self)
+        let index = (size / 2) * bytesPerRow + (size / 2) * 4
+        return Array(UnsafeBufferPointer(start: data + index, count: 4))
+    }
+
+    // The stand-in is neutral regardless of the red tint and low opacity.
+    let pixel = try centerPixel()
+    #expect(pixel[0] == pixel[1] && pixel[1] == pixel[2], "Tint must be ignored while inactive")
+    #expect(pixel[3] == 255, "Inactive fill must be fully opaque")
 }
 
 // MARK: - Performance Tests

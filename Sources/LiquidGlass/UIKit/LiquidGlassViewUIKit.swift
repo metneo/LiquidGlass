@@ -88,6 +88,30 @@ public final class LiquidGlassView: UIView {
         }
     }
 
+    /// Forces the active or inactive appearance, mirroring SwiftUI's
+    /// `appearsActive` environment value.
+    ///
+    /// `nil` (the default) follows the scene automatically through
+    /// ``UITraitCollection/activeAppearance``. Set `true` or `false` to pin the
+    /// appearance — useful for previews and snapshots.
+    public var appearsActiveOverride: Bool? {
+        didSet {
+            guard appearsActiveOverride != oldValue else { return }
+            updateAppearsActiveAppearance()
+        }
+    }
+
+    /// Whether the glass currently renders its active treatment.
+    ///
+    /// While inactive, the frosting is hidden and the decoration draws the
+    /// same flat, opaque stand-in SwiftUI uses for an inactive window.
+    public private(set) var appearsActive: Bool = true {
+        didSet {
+            guard appearsActive != oldValue else { return }
+            updateGlassVisibility()
+        }
+    }
+
     // MARK: - Private hierarchy
 
     private let frostContainer = UIView()
@@ -177,6 +201,7 @@ public final class LiquidGlassView: UIView {
         effectView.effect = UIBlurEffect(style: blurStyle)
         applyFrostingOpacity()
         updateFrosting()
+        updateAppearsActiveAppearance()
         setNeedsLayout()
     }
 
@@ -208,6 +233,28 @@ public final class LiquidGlassView: UIView {
         // mismatch against the drawn outline.
         updateFrosting()
         setNeedsLayout()
+    }
+
+    // MARK: - Active appearance
+
+    /// Re-reads the scene's active appearance once the view joins a window.
+    public override func didMoveToWindow() {
+        super.didMoveToWindow()
+        updateAppearsActiveAppearance()
+    }
+
+    /// Recomputes the appearance from the override or the scene's
+    /// ``UITraitCollection/activeAppearance`` trait.
+    private func updateAppearsActiveAppearance() {
+        appearsActive = appearsActiveOverride
+            ?? (traitCollection.activeAppearance != .inactive)
+    }
+
+    /// Hides the frosting while inactive and tells the decoration to draw the
+    /// flat stand-in instead of the accent layers.
+    private func updateGlassVisibility() {
+        frostContainer.isHidden = !appearsActive
+        decoration.isInactive = !appearsActive
     }
 
     // MARK: - Shape clipping
@@ -276,6 +323,9 @@ public final class LiquidGlassView: UIView {
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
             decoration.setNeedsDisplay()
         }
+        if traitCollection.activeAppearance != previousTraitCollection?.activeAppearance {
+            updateAppearsActiveAppearance()
+        }
     }
 }
 
@@ -294,6 +344,7 @@ private final class DecorationView: UIView {
     var tint: CGColor? { didSet { setNeedsDisplay() } }
     var opacity: CGFloat = 0.6 { didSet { setNeedsDisplay() } }
     var style: LiquidGlassRenderer.Style = .v26 { didSet { setNeedsDisplay() } }
+    var isInactive: Bool = false { didSet { setNeedsDisplay() } }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -327,7 +378,8 @@ private final class DecorationView: UIView {
             tint: tint,
             opacity: opacity,
             style: style,
-            isDark: isDark
+            isDark: isDark,
+            isInactive: isInactive
         ).draw(
             in: context,
             size: bounds.size,

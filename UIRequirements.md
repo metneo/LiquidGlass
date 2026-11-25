@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Document** | LiquidGlass UI Requirements |
-| **Version** | 1.2 |
+| **Version** | 1.3 |
 | **Date** | 2026-11-25 |
 | **Status** | Proposed |
 | **Author** | LiquidGlass maintainers |
@@ -14,6 +14,8 @@ This document specifies the **visual design requirements**, **parameter semantic
 > **Revision 1.1** aligns the specification with the current SwiftUI renderers (`LiquidGlassV26` / `LiquidGlassV27`, `GlassEffectModifier`, and the component styles). Values that previously diverged from the code — the v26 stroke alignment, the v27 lens/border colors, the hover fill, the `lightAngle` semantics, and the conic-fan segment count — have been corrected to match what the library actually draws.
 >
 > **Revision 1.2** removes the drop shadow from the AppKit/UIKit host views. They are embedded edge-to-edge in host containers, whose clipping cut any shadow drawn outside the view's bounds; elevation now belongs to the host container. The SwiftUI renderer keeps its shadow unchanged.
+>
+> **Revision 1.3** adds the inactive appearance (§5.8) and brings the AppKit/UIKit hosts to parity with the SwiftUI `InactiveGlass` stand-in, including automatic tracking of the host's active state.
 
 Every requirement has an identifier (`REQ-*`) and an acceptance test so it can be verified during development and review.
 
@@ -94,6 +96,8 @@ The glass effect is produced by a fixed layer stack. The stack MUST be rendered 
 5. Shadow        — soft black drop shadow behind the whole composite
                    (SwiftUI renderer only; the AppKit/UIKit hosts omit it — §5.4)
 ```
+
+When the host is inactive, the entire stack is replaced by the opaque stand-in in §5.8.
 
 | ID | Requirement | Acceptance |
 |---|---|---|
@@ -272,6 +276,27 @@ The v27 outline is a **dedicated look**: a horizontal "lens" highlight on the st
 |---|---|---|
 | REQ-UI-040 | All three stacks MUST use a shared coordinate origin/top meaning so the highlight orientation is identical (top of the shape = screen top). | The AppKit/UIKit renderer normalizes to a y-up context and mirrors the conic start angle and sweep; the SwiftUI renderer uses its native flipped coordinates. Screenshots align. |
 
+### 5.8 Inactive appearance
+
+When the host is inactive, all three renderer stacks replace the visual effect with the flat stand-in inactive system controls use.
+
+| Property | Value |
+|---|---|
+| Fill | Opaque neutral gray: light `white 0.94`, dark `white 0.21` |
+| Border | Centered hairline stroke, line width `1` pt: light `white 0.78`, dark `white 0.11` |
+| Ignored | `tint`, `opacity`, and `style` — the stand-in is identical for v26 and v27 |
+| Composition | Fully opaque: content stacked underneath MUST NOT show through |
+| Trigger (SwiftUI) | `appearsActive == false` |
+| Trigger (AppKit) | Host window resigns key (`NSWindow.isKeyWindow == false`) |
+| Trigger (UIKit) | Scene trait `UITraitCollection.activeAppearance == .inactive` |
+
+| ID | Requirement | Acceptance |
+|---|---|---|
+| REQ-UI-074 | When the host window (SwiftUI/AppKit) or scene (UIKit) is inactive, every renderer stack MUST replace the material, tint wash, highlight, and outline with the opaque stand-in above. | Inactive screenshots of SwiftUI, AppKit, and UIKit agree; no frosting or accent layers are visible. |
+| REQ-UI-075 | The stand-in MUST use the fill and border values in the table and ignore `tint`, `opacity`, and `style`. | Changing those parameters does not alter the inactive appearance. |
+| REQ-UI-076 | The inactive fill MUST be fully opaque so underlying content cannot show through. | Place colored content behind an inactive glass: no color bleeds through the shape. |
+| REQ-UI-077 | AppKit/UIKit MUST track the inactive state automatically and expose an override that pins the appearance for previews and snapshots. | Deactivate the window/scene: the view switches to the stand-in; `appearsActiveOverride` pins either state, and `nil` resumes automatic tracking. |
+
 ---
 
 ## 6. Layout & Sizing
@@ -362,6 +387,7 @@ The AppKit ``LiquidGlassView`` exposes the same behavior through its `hoverEffec
 - [ ] v26 diagonal outline; v27 lens top/bottom + gray border (REQ-UI-033/036/039).
 - [ ] Hover fill is white (light) / `.quinary` (dark), shape-matched, and animated (REQ-UI-048/050).
 - [ ] Light/dark switch repaints all stacks (REQ-UI-016).
+- [ ] Inactive window/scene shows the opaque neutral stand-in across all stacks (REQ-UI-074→077).
 - [ ] Native vs. custom selection works (REQ-UI-012→014).
 - [ ] AppKit/UIKit sample apps render all three shapes in both styles.
 

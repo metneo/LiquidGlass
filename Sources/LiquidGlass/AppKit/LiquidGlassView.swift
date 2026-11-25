@@ -143,6 +143,30 @@ public final class LiquidGlassView: NSView {
         }
     }
 
+    /// Forces the active or inactive appearance, mirroring SwiftUI's
+    /// `appearsActive` environment value.
+    ///
+    /// `nil` (the default) follows the host window automatically: the glass
+    /// appears active while its window is the key window. Set `true` or
+    /// `false` to pin the appearance — useful for previews and snapshots.
+    public var appearsActiveOverride: Bool? {
+        didSet {
+            guard appearsActiveOverride != oldValue else { return }
+            updateAppearsActiveAppearance()
+        }
+    }
+
+    /// Whether the glass currently renders its active treatment.
+    ///
+    /// While inactive, the frosting is hidden and the decoration draws the
+    /// same flat, opaque stand-in SwiftUI uses for an inactive window.
+    public private(set) var appearsActive: Bool = true {
+        didSet {
+            guard appearsActive != oldValue else { return }
+            updateGlassVisibility()
+        }
+    }
+
     // MARK: - Private hierarchy
 
     private let maskContainer = NSView()
@@ -154,6 +178,9 @@ public final class LiquidGlassView: NSView {
 
     private var hoverTrackingArea: NSTrackingArea?
     private var isHovered = false
+
+    /// The window whose key-status notifications are currently observed.
+    private weak var observedWindow: NSWindow?
 
     /// Reused as the frosted backdrop's mask. Allocating and swapping a fresh
     /// `CAShapeLayer` on every layout pass would churn layers while resizing.
@@ -238,6 +265,7 @@ public final class LiquidGlassView: NSView {
         decoration.style = style
 
         updateGlassLayers()
+        updateAppearsActiveAppearance()
     }
 
     // MARK: - Layout
@@ -313,7 +341,9 @@ public final class LiquidGlassView: NSView {
     /// Cross-fades the hover fill. Matches SwiftUI's `withAnimation` hover:
     /// the fill only exists while `hoverEffect` is enabled.
     private func setHovered(_ hovering: Bool, animated: Bool = true) {
-        guard hoverEffect else {
+        // An inactive window draws the opaque stand-in; a hover fill behind it
+        // would be invisible anyway, so skip the tracking work.
+        guard hoverEffect, appearsActive else {
             isHovered = false
             return
         }
@@ -341,6 +371,73 @@ public final class LiquidGlassView: NSView {
         let color: NSColor = isDarkAppearance ? .white.withAlphaComponent(0.08) : .white
         withDisabledLayerActions {
             hoverView.layer?.backgroundColor = color.cgColor
+        }
+    }
+
+    // MARK: - Active appearance
+
+    /// Starts tracking the host window's key status once the view joins a
+    /// window, so the glass can swap to its inactive stand-in like SwiftUI's
+    /// `appearsActive` environment does.
+    public override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        observeHostWindowKeyStatus()
+        updateAppearsActiveAppearance()
+    }
+
+    /// Moves the key-status notifications from the previous window to the new
+    /// one. Selector-based observers are unregistered automatically on deinit.
+    private func observeHostWindowKeyStatus() {
+        guard observedWindow !== window else { return }
+        if let observedWindow {
+            NotificationCenter.default.removeObserver(
+                self,
+                name: NSWindow.didBecomeKeyNotification,
+                object: observedWindow
+            )
+            NotificationCenter.default.removeObserver(
+                self,
+                name: NSWindow.didResignKeyNotification,
+                object: observedWindow
+            )
+        }
+        observedWindow = window
+        guard let window else { return }
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(hostWindowKeyStatusDidChange(_:)),
+            name: NSWindow.didBecomeKeyNotification,
+            object: window
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(hostWindowKeyStatusDidChange(_:)),
+            name: NSWindow.didResignKeyNotification,
+            object: window
+        )
+    }
+
+    @objc private func hostWindowKeyStatusDidChange(_ notification: Notification) {
+        updateAppearsActiveAppearance()
+    }
+
+    /// Recomputes the appearance from the override or the host window's key
+    /// status. A view that is not in a window yet renders as active, matching
+    /// SwiftUI's default in previews and offscreen snapshots.
+    private func updateAppearsActiveAppearance() {
+        appearsActive = appearsActiveOverride ?? (window?.isKeyWindow ?? true)
+    }
+
+    /// Hides the frosting while inactive and tells the decoration to draw the
+    /// flat stand-in instead of the accent layers.
+    private func updateGlassVisibility() {
+        maskContainer.isHidden = !appearsActive
+        decoration.isInactive = !appearsActive
+        if !appearsActive {
+            isHovered = false
+            withDisabledLayerActions {
+                hoverView.alphaValue = 0
+            }
         }
     }
 
@@ -430,6 +527,7 @@ private final class DecorationView: NSView {
     var tint: CGColor? { didSet { needsDisplay = true } }
     var opacity: CGFloat = 0.6 { didSet { needsDisplay = true } }
     var style: LiquidGlassRenderer.Style = .v26 { didSet { needsDisplay = true } }
+    var isInactive: Bool = false { didSet { needsDisplay = true } }
 
     override func draw(_ dirtyRect: NSRect) {
         guard let context = NSGraphicsContext.current?.cgContext else { return }
@@ -439,7 +537,8 @@ private final class DecorationView: NSView {
             tint: tint,
             opacity: opacity,
             style: style,
-            isDark: isDark
+            isDark: isDark,
+            isInactive: isInactive
         ).draw(
             in: context,
             size: bounds.size,

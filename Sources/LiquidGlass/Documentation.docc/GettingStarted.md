@@ -177,5 +177,5 @@ The platform views paint the same tint wash, highlight, and outline as the Swift
 - On **iOS 26+ / macOS 26+**, the SwiftUI glass modifiers render with the system's native `glassEffect(in:)`.
 - On **earlier OS versions**, they automatically fall back to the custom SwiftUI implementation — same API, no extra work.
 - **`forceToCustomLiquidGlass()`** opts out of the native API on Platform 26+ and always renders the custom ``LiquidGlass`` style.
-- When the view's window is inactive, the custom SwiftUI renderers swap the material treatment for a flat, opaque neutral fill with a hairline border, mirroring inactive system controls. The stand-in is fully opaque, so content stacked underneath does not show through.
+- When the host window (SwiftUI/AppKit) or scene (UIKit) is inactive, the custom renderers swap the material treatment for a flat, opaque neutral fill with a hairline border, mirroring inactive system controls. The stand-in is fully opaque, so content stacked underneath does not show through. The AppKit view tracks the key window and the UIKit view tracks `UITraitCollection.activeAppearance`; both expose `appearsActiveOverride` to pin the state.
 - The **AppKit and UIKit** views always render the custom effect; they have no native counterpart to switch to. Choose their look with ``LiquidGlassRenderer/Style`` rather than `liquidGlassVersion(_:)`.
