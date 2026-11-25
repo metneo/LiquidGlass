@@ -3,9 +3,11 @@ name: Release
 # Cut a GitHub Release whenever a SemVer tag is pushed (e.g. `git tag v2.1.0 && git push --tags`).
 # Tags use the `v` prefix already used by this repo (`v1.0.0`, `v2.1.0`, ...); the
 # leading `v` is stripped before matching the CHANGELOG entry.
+#
+# Keep this tag-only: `branches` and `tags` under the same push filter are OR'd,
+# so adding `branches: [main]` publishes a release named after the branch.
 on:
   push:
-    branches: [main]
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
@@ -14,6 +16,9 @@ permissions:
 
 jobs:
   release:
+    # Defence in depth: never publish from a branch push even if the trigger
+    # above is widened later.
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

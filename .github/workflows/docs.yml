@@ -36,7 +36,17 @@ jobs:
         # Project Pages URL is https://<user>.github.io/LiquidGlass/...
         # so hosting-base-path must be the repo name. Drop it for a custom
         # domain or a unique-subdomain Pages site that publishes at `/`.
+        env:
+          # Used to authenticate SwiftPM's clone of swift-docc-plugin below.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # SwiftPM clones the DocC plugin over HTTPS. Authenticate that fetch
+          # so runners whose anonymous GitHub access is challenged or
+          # rate-limited can still resolve the plugin.
+          git config --global \
+            url."https://x-access-token:${GH_TOKEN}@github.com/".insteadOf \
+            "https://github.com/"
+
           mkdir -p .github/build-tools/Sources/LiquidGlass
           cp -R Sources/LiquidGlass/. .github/build-tools/Sources/LiquidGlass/
           swift package \
