@@ -181,6 +181,7 @@ private struct GlassButtonMidifier: ViewModifier {
     
     // MARK: - Private Helpers
     
+    #if compiler(>=6.2)
     /// Applies the appropriate system glass button style for Platform 26+.
     ///
     /// Uses the native `.glass` and `.glassProminent` button styles introduced in Platform 26,
@@ -232,8 +233,14 @@ private struct GlassButtonMidifier: ViewModifier {
             content.buttonBorderShape(.capsule)
         }
     }
+#endif
     
     func body(content: Content) -> some View {
+        // The Platform 26 `.glass` / `.glassProminent` button styles exist only
+        // in the Platform 26 SDK, so gate the reference at compile time too —
+        // `#available` alone can't resolve a symbol the SDK doesn't declare.
+        // Swift 6.2 is the toolchain that ships with Xcode 26.
+#if compiler(>=6.2)
         if !forcesCustom,
            #available(macOS 26.0, iOS 26.0, watchOS 26.0, visionOS 26.0, tvOS 26.0, *) {
             // Use system glass button styles on Platform 26+
@@ -242,6 +249,10 @@ private struct GlassButtonMidifier: ViewModifier {
             content
                 .buttonStyle(GlassButtonStyle(shape: shape, prominent: prominent, tint: tint, opacity: opacity))
         }
+#else
+        content
+            .buttonStyle(GlassButtonStyle(shape: shape, prominent: prominent, tint: tint, opacity: opacity))
+#endif
     }
 }
 

@@ -136,13 +136,23 @@ struct GlassEffectModifier: ViewModifier {
 
     @ViewBuilder
     private func renderGlassEffect(content: Content) -> some View {
+        // `glassEffect(in:)` is declared only in the Platform 26 SDK, so the
+        // reference must be removed at compile time as well as gated at
+        // runtime: `#available` alone still fails to resolve the symbol when
+        // building against an older SDK. Swift 6.2 is the toolchain that ships
+        // with Xcode 26 and its Platform 26 SDKs.
+#if compiler(>=6.2)
         if !forcesCustom, #available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *) {
             nativeGlass(content)
         } else {
             fallbackGlass(content)
         }
+#else
+        fallbackGlass(content)
+#endif
     }
 
+#if compiler(>=6.2)
     @ViewBuilder
     @available(macOS 26.0, iOS 26.0, watchOS 26.0, tvOS 26.0, *)
     private func nativeGlass(_ content: Content) -> some View {
@@ -150,6 +160,7 @@ struct GlassEffectModifier: ViewModifier {
             .glassEffect(in: shape)
             .tint(tint)
     }
+#endif
 
     @ViewBuilder
     private func fallbackGlass(_ content: Content) -> some View {

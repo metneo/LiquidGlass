@@ -110,6 +110,9 @@ private struct AppKitGlassPreview: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 
+                // `glassEffect(in:)` is declared only in the Platform 26 SDK;
+                // gate the reference at compile time, not just at runtime.
+#if compiler(>=6.2)
                 if #available(macOS 26.0, *) {
                     HStack(spacing: 24) {
                         Text("Native")
@@ -128,6 +131,7 @@ private struct AppKitGlassPreview: View {
                             .glassEffect(.regular.tint(.blue), in: .rect(cornerRadius: 16))
                     }
                 }
+#endif
                 
                 HStack(spacing: 24) {
                     LiquidGlass(shape: .capsule)
