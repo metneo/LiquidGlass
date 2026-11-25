@@ -7,6 +7,10 @@ DerivedData/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
 /.vscode
+# Claude Code local state — per-machine, never commit (.claude/settings.json
+# stays trackable as shared project config)
+/.claude/settings.local.json
+/.claude/plans/
 /.swiftpm
 Package.resolved
 .editorconfig
