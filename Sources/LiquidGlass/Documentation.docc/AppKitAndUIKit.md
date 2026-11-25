@@ -94,7 +94,9 @@ Both platforms provide `addLiquidGlassBackground(shape:tint:opacity:style:...)`,
 ``LiquidGlassRenderer/Style`` selects the decorative outline, matching the SwiftUI target version:
 
 - `.v26` (default) — the original look: a full angular-gradient outline.
-- `.v27` — a horizontal lens highlight along the top and bottom edges plus a full-outline gray border.
+- `.v27` — a horizontal lens highlight along the top and bottom edges, brightest at the middle of each straight edge and fading toward the corners before wrapping around the rounded corner arcs, plus a full-outline gray border. Circles keep a full-outline highlight.
+
+The v27 highlight samples the same edge-falloff curve as the SwiftUI renderer, so the SwiftUI, AppKit, and UIKit glass fade identically.
 
 Set `style` directly on the view; the platform views do not read the SwiftUI `liquidGlassVersion(_:)` environment.
 

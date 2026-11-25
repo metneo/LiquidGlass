@@ -1,4 +1,5 @@
 @testable import LiquidGlass
+import Foundation
 import SwiftUI
 import Testing
 
@@ -149,6 +150,64 @@ func testCapsulePath() async throws {
     #expect(bounds.height > 0, "Capsule should have height")
     #expect(abs(bounds.width - rect.width) < 1.0, "Capsule should span the full rect width")
     #expect(abs(bounds.height - rect.height) < 1.0, "Capsule should span the full rect height")
+}
+
+// MARK: - StrokeFalloff Tests
+
+@Test("StrokeFalloff is pinned to zero at both edges")
+func testStrokeFalloffPinnedEnds() async throws {
+    for power in [1.0, 2.0, 4.0, 8.0] {
+        #expect(StrokeFalloff.alpha(at: 0, power: power) == 0, "t = 0 must be pinned to 0")
+        #expect(StrokeFalloff.alpha(at: 1, power: power) == 0, "t = 1 must be pinned to 0")
+    }
+}
+
+@Test("StrokeFalloff peaks at the center")
+func testStrokeFalloffPeak() async throws {
+    #expect(abs(StrokeFalloff.alpha(at: 0.5) - StrokeFalloff.peak) < 1e-12)
+}
+
+@Test("StrokeFalloff power 2 matches the original parabola")
+func testStrokeFalloffParabola() async throws {
+    // The pinned quadratic b * (1 - (2t - 1)²) is the p = 2 member.
+    for step in 0...20 {
+        let t = Double(step) / 20
+        let parabola = StrokeFalloff.peak * (1 - pow(2 * t - 1, 2))
+        #expect(abs(StrokeFalloff.alpha(at: t, power: 2) - parabola) < 1e-12)
+    }
+}
+
+@Test("StrokeFalloff gets fatter as power increases")
+func testStrokeFalloffFatter() async throws {
+    let t = 0.1
+    let alphas = [2.0, 4.0, 8.0].map { StrokeFalloff.alpha(at: t, power: $0) }
+    #expect(alphas[0] < alphas[1])
+    #expect(alphas[1] < alphas[2])
+}
+
+@Test("StrokeFalloff holds the corner arcs at the tangent opacity")
+func testStrokeFalloffCornerWrap() async throws {
+    let inset = 0.05
+    let samples = StrokeFalloff.sampledAlphas(power: 5.6, cornerFraction: inset)
+    let edge = StrokeFalloff.alpha(at: inset, power: 5.6)
+
+    // Both ends are held at the tangent's opacity instead of fading to 0.
+    #expect(abs((samples.first?.alpha ?? -1) - edge) < 1e-12)
+    #expect(abs((samples.last?.alpha ?? -1) - edge) < 1e-12)
+
+    // Locations stay in ascending order so the gradient is well-formed.
+    let locations = samples.map { $0.location }
+    #expect(locations == locations.sorted())
+}
+
+@Test("StrokeFalloff sampling spans the stroke")
+func testStrokeFalloffSampling() async throws {
+    let samples = StrokeFalloff.sampledAlphas()
+    #expect(samples.count == StrokeFalloff.steps + 1)
+    #expect(samples.first?.location == 0)
+    #expect(samples.last?.location == 1)
+    #expect(samples.first?.alpha == 0)
+    #expect(samples.last?.alpha == 0)
 }
 
 // MARK: - Performance Tests

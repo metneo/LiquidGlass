@@ -102,7 +102,7 @@ Text("Hover Over Me")
 
 #### Light angle
 
-The modifier accepts a ``LightAngle`` through its `angle` parameter, but the built-in renderers currently use fixed highlight directions: `.v26` draws a 45° angular-gradient outline, and `.v27` a horizontal lens highlight. The parameter is accepted for API compatibility and does not change the custom fallback look.
+The modifier accepts a ``LightAngle`` through its `angle` parameter, but the built-in renderers currently use fixed highlight directions: `.v26` draws a 45° angular-gradient outline, and `.v27` a horizontal lens highlight that fades from the middle of each straight edge toward the corners. The parameter is accepted for API compatibility and does not change the custom fallback look.
 
 ### Target a platform version
 
@@ -118,7 +118,12 @@ LiquidGlass(shape: .roundedRect(cornerRadius: 14))
     .liquidGlassVersion(.v27)
 ```
 
-On **Platform 26+** the effect uses the system's native `glassEffect(in:)`. Below Platform 26 it falls back to the custom SwiftUI renderer, whose look depends on the target version: `.v26` (default) matches the original look, `.v27` uses a dedicated style.
+On **Platform 26+** the effect uses the system's native `glassEffect(in:)`. Below Platform 26 it falls back to the custom SwiftUI renderer, whose look depends on the target version:
+
+- `.v26` (default) — the original look, with a diagonal angular-gradient outline.
+- `.v27` — a dedicated style: a horizontal lens highlight along the top and bottom edges, brightest at the middle of each straight edge and fading smoothly toward the corners before wrapping around the rounded corner arcs, plus a gray full-outline border.
+
+The same edge-highlight falloff drives the AppKit and UIKit renderers, so the v27 style matches across all three platforms.
 
 ### Force the custom renderer
 
@@ -172,4 +177,5 @@ The platform views paint the same tint wash, highlight, and outline as the Swift
 - On **iOS 26+ / macOS 26+**, the SwiftUI glass modifiers render with the system's native `glassEffect(in:)`.
 - On **earlier OS versions**, they automatically fall back to the custom SwiftUI implementation — same API, no extra work.
 - **`forceToCustomLiquidGlass()`** opts out of the native API on Platform 26+ and always renders the custom ``LiquidGlass`` style.
+- When the view's window is inactive, the custom SwiftUI renderers swap the material treatment for a flat, opaque neutral fill with a hairline border, mirroring inactive system controls. The stand-in is fully opaque, so content stacked underneath does not show through.
 - The **AppKit and UIKit** views always render the custom effect; they have no native counterpart to switch to. Choose their look with ``LiquidGlassRenderer/Style`` rather than `liquidGlassVersion(_:)`.

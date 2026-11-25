@@ -268,14 +268,16 @@ public struct LiquidGlassRenderer {
     /// transparent at both ends) following the straight edges *and* the rounded
     /// corner arcs of a rounded-rect-style outline.
     ///
-    /// The falloff follows the same downward-opening quadratic as the SwiftUI
-    /// renderer's `lensGradient`, so the AppKit and UIKit views match it.
+    /// The falloff comes from ``StrokeFalloff``, the same curve the SwiftUI
+    /// renderer uses, so the AppKit and UIKit views match it.
     private func drawLensHighlight(
         _ context: CGContext, bounds: CGRect, cornerRadius: CGFloat,
         strokeBase: CGColor, lineWidth: CGFloat
     ) {
         let edges = Self.horizontalEdgesPath(rect: bounds, cornerRadius: cornerRadius)
-        let stops = Self.lensHighlightStops(base: strokeBase)
+        let radius = min(cornerRadius, min(bounds.width, bounds.height) / 2)
+        let cornerFraction = bounds.width > 0 ? Double(radius / bounds.width) : 0
+        let stops = Self.lensHighlightStops(base: strokeBase, cornerFraction: cornerFraction)
         Self.clipStrokedPath(context, path: edges, lineWidth: lineWidth, blendMode: .plusLighter)
         Self.drawLinearGradient(
             in: context,
@@ -285,30 +287,17 @@ public struct LiquidGlassRenderer {
         )
     }
 
-    /// Opacity samples for the v27 lens highlight, a downward-opening
-    /// quadratic sampled across the stroke:
-    ///
-    ///     opacity(t) = a * (t - 0.5)² + b
-    ///
-    /// `b` is the peak opacity at the center (t = 0.5); `a` is the curvature,
-    /// negative so the parabola opens downward. Keep `a`/`b` in step with
-    /// `LiquidGlassV27.lensGradient` in the SwiftUI renderer. The stops are
-    /// sampled at 0.1 intervals; the gradient interpolates linearly between
-    /// them, so denser sampling tracks the quadratic more closely.
-    private static func lensHighlightStops(base: CGColor) -> [GradientStop] {
-        // Adjust `a` for curvature (more negative = sharper falloff) and `b`
-        // for the peak brightness at the center.
-        func opacity(at t: CGFloat, a: CGFloat = -3.6, b: CGFloat = 0.9) -> CGFloat {
-            let offset = t - 0.5
-            return min(max(a * offset * offset + b, 0), 1)
-        }
-
-        let steps = 10
-        return (0...steps).map { step in
-            let t = CGFloat(step) / CGFloat(steps)
-            return GradientStop(
-                color: Self.withAlpha(base, base.alpha * opacity(at: t)),
-                location: t
+    /// Opacity samples for the v27 lens highlight, taken across the stroke from
+    /// the shared ``StrokeFalloff`` curve. The gradient interpolates linearly
+    /// between them. `cornerFraction` holds the corner arcs at the tangent's
+    /// opacity so the stroke wraps the corner.
+    private static func lensHighlightStops(
+        base: CGColor, cornerFraction: Double
+    ) -> [GradientStop] {
+        StrokeFalloff.sampledAlphas(cornerFraction: cornerFraction).map { sample in
+            GradientStop(
+                color: Self.withAlpha(base, base.alpha * CGFloat(sample.alpha)),
+                location: CGFloat(sample.location)
             )
         }
     }

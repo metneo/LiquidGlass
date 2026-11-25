@@ -32,6 +32,8 @@ struct LiquidGlassV26: View {
 
     /// Respect system color scheme for subtle color adjustments.
     @Environment(\.colorScheme) private var colorScheme
+    
+    @Environment(\.appearsActive) private var appearsActive
 
     // MARK: - Initializer
 
@@ -99,8 +101,6 @@ struct LiquidGlassV26: View {
     private let highOpacity: Double = 0.7
     private let lowOpacity: Double = 0.1
 
-    // MARK: - Body
-
     private func gradient(startAngle: CGFloat, mid1: CGFloat, mid2: CGFloat) -> AngularGradient {
         let highStroke = strokeColor.opacity(highOpacity)
         let lowStroke = strokeColor.opacity(lowOpacity)
@@ -118,7 +118,21 @@ struct LiquidGlassV26: View {
         )
     }
 
+    // MARK: - Body
+
+    /// Switches between the glass treatment and a flat inactive stand-in based
+    /// on whether the view's window is active.
+    @ViewBuilder
     public var body: some View {
+        if appearsActive {
+            activeGlass
+        } else {
+            InactiveGlass(shape: shape)
+        }
+    }
+
+    /// The full glass treatment, shown while the view's window is active.
+    private var activeGlass: some View {
         // Base fill: use a system material to provide the frosted effect, then layer other accents on top.
         shape
             .shape
